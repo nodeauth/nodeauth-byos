@@ -1,6 +1,6 @@
 {
   "name": "nodeauth-worker",
-  "version": "2.3.23",
+  "version": "3.0.0",
   "description": "High-security, Lightweight 2FA/TOTP management tool (Distribution Version)",
   "author": "nodeauth",
   "license": "AGPL-3.0",
@@ -13,9 +13,9 @@
   "dependencies": {
     "better-sqlite3": "^12.8.0",
     "pg": "^8.20.0",
-    "mysql2": "^3.20.0",
-    "hono": "^4.13.0",
-    "nodemailer": "^9.0.1"
+    "mysql2": "^3.24.4",
+    "hono": "^4.13.7",
+    "nodemailer": "^10.0.5"
   },
   "main": "backend/dist/wasmer/wasmer.js"
 }

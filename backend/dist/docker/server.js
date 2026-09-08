@@ -17496,7 +17496,7 @@ var require_x509_cjs = __commonJS({
         return obj;
       }
     };
-    var X509ChainBuilder = class {
+    var X509ChainBuilder2 = class {
       constructor(params = {}) {
         this.certificates = [];
         if (params.certificates) {
@@ -18082,7 +18082,7 @@ var require_x509_cjs = __commonJS({
     exports2.X509Certificate = X509Certificate2;
     exports2.X509CertificateGenerator = X509CertificateGenerator;
     exports2.X509Certificates = X509Certificates;
-    exports2.X509ChainBuilder = X509ChainBuilder;
+    exports2.X509ChainBuilder = X509ChainBuilder2;
     exports2.X509Crl = X509Crl2;
     exports2.X509CrlEntry = X509CrlEntry;
     exports2.X509CrlGenerator = X509CrlGenerator;
@@ -40398,6 +40398,8 @@ var bufferToFormData = (arrayBuffer, contentType2) => {
 };
 
 // node_modules/hono/dist/utils/body.js
+var MAX_NESTING_DEPTH = 32;
+var MAX_NESTED_OBJECTS = 1e4;
 var isRawRequest = (request2) => "headers" in request2;
 var parseBody = async (request2, options = /* @__PURE__ */ Object.create(null)) => {
   const { all = false, dot = false } = options;
@@ -40430,6 +40432,7 @@ async function parseFormData(request2, options) {
 }
 function convertFormDataToBodyData(formData, options) {
   const form = /* @__PURE__ */ Object.create(null);
+  const nestingState = { count: 0 };
   formData.forEach((value, key) => {
     const shouldParseAllValues = options.all || key.endsWith("[]");
     if (!shouldParseAllValues) {
@@ -40442,7 +40445,7 @@ function convertFormDataToBodyData(formData, options) {
     Object.entries(form).forEach(([key, value]) => {
       const shouldParseDotValues = key.includes(".");
       if (shouldParseDotValues) {
-        handleParsingNestedValues(form, key, value);
+        handleParsingNestedValues(form, key, value, nestingState);
         delete form[key];
       }
     });
@@ -40465,22 +40468,31 @@ var handleParsingAllValues = (form, key, value) => {
     }
   }
 };
-var handleParsingNestedValues = (form, key, value) => {
+var handleParsingNestedValues = (form, key, value, state) => {
   if (/(?:^|\.)__proto__\./.test(key)) {
     return;
   }
   let nestedForm = form;
-  const keys = key.split(".");
+  const keys = key.split(".", MAX_NESTING_DEPTH + 2);
+  if (keys.length > MAX_NESTING_DEPTH + 1) {
+    throwNestingLimitExceeded();
+  }
   keys.forEach((key2, index2) => {
     if (index2 === keys.length - 1) {
       nestedForm[key2] = value;
     } else {
       if (!nestedForm[key2] || typeof nestedForm[key2] !== "object" || Array.isArray(nestedForm[key2]) || nestedForm[key2] instanceof File) {
+        if (state.count++ >= MAX_NESTED_OBJECTS) {
+          throwNestingLimitExceeded();
+        }
         nestedForm[key2] = /* @__PURE__ */ Object.create(null);
       }
       nestedForm = nestedForm[key2];
     }
   });
+};
+var throwNestingLimitExceeded = () => {
+  throw new Error("Nesting limit exceeded");
 };
 
 // node_modules/hono/dist/utils/url.js
@@ -40589,13 +40601,13 @@ var checkOptionalParameter = (path7) => {
     if (segment !== "" && !/\:/.test(segment)) {
       basePath += "/" + segment;
     } else if (/\:/.test(segment)) {
-      if (/\?/.test(segment)) {
+      if (segment.charCodeAt(segment.length - 1) === 63) {
         if (results.length === 0 && basePath === "") {
           results.push("/");
         } else {
           results.push(basePath);
         }
-        const optionalSegment = segment.replace("?", "");
+        const optionalSegment = segment.slice(0, -1);
         basePath += "/" + optionalSegment;
         results.push(basePath);
       } else {
@@ -40613,6 +40625,10 @@ var _decodeURI = (value) => {
   return tryDecodeURIComponent(value);
 };
 var _getQueryParam = (url, key, multiple) => {
+  const hashIndex = url.indexOf("#", 8);
+  if (hashIndex !== -1) {
+    url = url.slice(0, hashIndex);
+  }
   let encoded;
   if (!multiple && key && key.indexOf("%") === -1 && key.indexOf("+") === -1) {
     let keyIndex2 = url.indexOf("?", 8);
@@ -40729,13 +40745,13 @@ var HonoRequest = class {
     return key ? this.#getDecodedParam(key) : this.#getAllDecodedParams();
   }
   #getDecodedParam(key) {
-    const paramKey = this.#matchResult[0][this.routeIndex][1][key];
+    const paramKey = this.#matchResult[0][this.routeIndex]?.[1][key];
     const param = this.#getParamValue(paramKey);
     return param && tryDecodeURIComponent(param);
   }
   #getAllDecodedParams() {
     const decoded = {};
-    const keys = Object.keys(this.#matchResult[0][this.routeIndex][1]);
+    const keys = Object.keys(this.#matchResult[0][this.routeIndex]?.[1] ?? {});
     for (const key of keys) {
       const value = this.#getParamValue(this.#matchResult[0][this.routeIndex][1][key]);
       if (value !== void 0) {
@@ -41210,6 +41226,10 @@ var Context = class {
    *   c.header('X-Message', 'Hello!')
    *   c.header('Content-Type', 'text/plain')
    *
+   *   // Append multiple headers using the append option (e.g. Vary)
+   *   c.header('Vary', 'Accept-Encoding', { append: true })
+   *   c.header('Vary', 'User-Agent', { append: true })
+   *
    *   return c.body('Thank you for coming')
    * })
    * ```
@@ -41478,13 +41498,14 @@ var Hono = class _Hono {
     const allMethods = [...METHODS, METHOD_NAME_ALL_LOWERCASE];
     allMethods.forEach((method) => {
       this[method] = (args1, ...args) => {
+        const methodName = method.toUpperCase();
         if (typeof args1 === "string") {
           this.#path = args1;
         } else {
-          this.#addRoute(method, this.#path, args1);
+          this.#addRoute(methodName, this.#path, args1);
         }
         args.forEach((handler) => {
-          this.#addRoute(method, this.#path, handler);
+          this.#addRoute(methodName, this.#path, handler);
         });
         return this;
       };
@@ -41493,9 +41514,10 @@ var Hono = class _Hono {
       for (const p of [path7].flat()) {
         this.#path = p;
         for (const m2 of [method].flat()) {
-          handlers.map((handler) => {
-            this.#addRoute(m2.toUpperCase(), this.#path, handler);
-          });
+          const methodName = m2.toUpperCase();
+          for (const handler of handlers) {
+            this.#addRoute(methodName, this.#path, handler);
+          }
         }
       }
       return this;
@@ -41696,7 +41718,6 @@ var Hono = class _Hono {
     return this;
   }
   #addRoute(method, path7, handler, baseRoutePath) {
-    method = method.toUpperCase();
     path7 = mergePath(this._basePath, path7);
     const r2 = {
       basePath: baseRoutePath !== void 0 ? mergePath(this._basePath, baseRoutePath) : this._basePath,
@@ -41818,6 +41839,9 @@ var Hono = class _Hono {
   };
 };
 
+// node_modules/hono/dist/router/utils.js
+var createNullObject = () => /* @__PURE__ */ Object.create(null);
+
 // node_modules/hono/dist/router/reg-exp-router/matcher.js
 var emptyParam = [];
 function match(method, path7) {
@@ -41868,7 +41892,7 @@ var Node = class _Node {
   // handler index of a dynamic path, or -1 for a static path terminal
   #index;
   #varIndex;
-  #children = /* @__PURE__ */ Object.create(null);
+  #children = createNullObject();
   insert(tokens, index2, paramMap, context, isStatic) {
     let node = this;
     for (let i2 = 0, len = tokens.length; i2 < len; i2++) {
@@ -41952,7 +41976,7 @@ var Trie = class {
   #root = new Node();
   #index = 0;
   // dynamic path -> [handler index, param assoc]; static paths are not registered
-  paths = /* @__PURE__ */ Object.create(null);
+  paths = createNullObject();
   insert(path7, isStatic) {
     if (isStatic) {
       this.#root.insert(path7.split(""), 0, [], this.#context, true);
@@ -42011,22 +42035,16 @@ var Trie = class {
 };
 
 // node_modules/hono/dist/router/reg-exp-router/router.js
-var wildcardRegExpCache = /* @__PURE__ */ Object.create(null);
+var wildcardRegExpCache = createNullObject();
 function buildWildcardRegExp(path7) {
   return wildcardRegExpCache[path7] ??= new RegExp(
-    path7 === "*" ? "" : `^${path7.replace(
-      /\/\*$|([.\\+*[^\]$()])/g,
-      (_, metaChar) => metaChar ? `\\${metaChar}` : "(?:|/.*)"
+    `^${path7.replace(
+      /\/:[^/{}]+(?:\{\[\^\/]\+})?(?=[/{]|$)|\/?\*$|([.\\+*[^\]$()?{}|])/g,
+      (match22, metaChar) => metaChar ? `\\${metaChar}` : match22 === "/*" ? TAIL_WILDCARD_REG_EXP_STR : match22 === "*" ? ONLY_WILDCARD_REG_EXP_STR : `/:${LABEL_REG_EXP_STR}`
     )}$`
   );
 }
-function clearWildcardRegExpCache() {
-  wildcardRegExpCache = /* @__PURE__ */ Object.create(null);
-}
 function findMiddleware(middleware, path7) {
-  if (!middleware) {
-    return void 0;
-  }
   for (const k of Object.keys(middleware).sort((a, b) => b.length - a.length)) {
     if (buildWildcardRegExp(k).test(path7)) {
       return [...middleware[k]];
@@ -42040,8 +42058,8 @@ var RegExpRouter = class {
   #routes;
   #tries;
   constructor() {
-    this.#middleware = { [METHOD_NAME_ALL]: /* @__PURE__ */ Object.create(null) };
-    this.#routes = { [METHOD_NAME_ALL]: /* @__PURE__ */ Object.create(null) };
+    this.#middleware = { [METHOD_NAME_ALL]: createNullObject() };
+    this.#routes = { [METHOD_NAME_ALL]: createNullObject() };
     this.#tries = { [METHOD_NAME_ALL]: new Trie() };
   }
   #insertPath(method, path7) {
@@ -42054,117 +42072,86 @@ var RegExpRouter = class {
   add(method, path7, handler) {
     const middleware = this.#middleware;
     const routes = this.#routes;
-    if (!middleware || !routes) {
+    if (!middleware) {
       throw new Error(MESSAGE_MATCHER_IS_ALREADY_BUILT);
     }
     if (!middleware[method]) {
       this.#tries[method] = new Trie();
-      [middleware, routes].forEach((handlerMap) => {
-        handlerMap[method] = /* @__PURE__ */ Object.create(null);
-        Object.keys(handlerMap[METHOD_NAME_ALL]).forEach((p) => {
+      for (const handlerMap of [middleware, routes]) {
+        handlerMap[method] = createNullObject();
+        for (const p in handlerMap[METHOD_NAME_ALL]) {
           handlerMap[method][p] = [...handlerMap[METHOD_NAME_ALL][p]];
           this.#insertPath(method, p);
-        });
-      });
+        }
+      }
     }
     if (path7 === "/*") {
       path7 = "*";
     }
-    const paramCount = (path7.match(/\/:/g) || []).length;
+    const methods = method === METHOD_NAME_ALL ? Object.keys(middleware) : [method];
     if (/\*$/.test(path7)) {
       const re = buildWildcardRegExp(path7);
-      Object.keys(middleware).forEach((m2) => {
-        if ((method === METHOD_NAME_ALL || method === m2) && !middleware[m2][path7]) {
+      for (const m2 of methods) {
+        if (!middleware[m2][path7]) {
           this.#insertPath(m2, path7);
           middleware[m2][path7] = findMiddleware(middleware[m2], path7) || findMiddleware(middleware[METHOD_NAME_ALL], path7) || [];
         }
-      });
-      Object.keys(middleware).forEach((m2) => {
-        if (method === METHOD_NAME_ALL || method === m2) {
-          Object.keys(middleware[m2]).forEach((p) => {
-            re.test(p) && middleware[m2][p].push([handler, paramCount]);
-          });
+      }
+      for (const handlerMap of [middleware, routes]) {
+        for (const m2 of methods) {
+          for (const p in handlerMap[m2]) {
+            re.test(p) && handlerMap[m2][p].push([handler, path7]);
+          }
         }
-      });
-      Object.keys(routes).forEach((m2) => {
-        if (method === METHOD_NAME_ALL || method === m2) {
-          Object.keys(routes[m2]).forEach(
-            (p) => re.test(p) && routes[m2][p].push([handler, paramCount])
-          );
-        }
-      });
+      }
       return;
     }
     const paths = checkOptionalParameter(path7) || [path7];
-    for (let i2 = 0, len = paths.length; i2 < len; i2++) {
-      const path22 = paths[i2];
-      Object.keys(routes).forEach((m2) => {
-        if (method === METHOD_NAME_ALL || method === m2) {
-          if (!routes[m2][path22]) {
-            this.#insertPath(m2, path22);
-            routes[m2][path22] = [
-              ...findMiddleware(middleware[m2], path22) || findMiddleware(middleware[METHOD_NAME_ALL], path22) || []
-            ];
-          }
-          routes[m2][path22].push([handler, paramCount - len + i2 + 1]);
+    for (const path22 of paths) {
+      for (const m2 of methods) {
+        if (!routes[m2][path22]) {
+          this.#insertPath(m2, path22);
+          routes[m2][path22] = findMiddleware(middleware[m2], path22) || findMiddleware(middleware[METHOD_NAME_ALL], path22) || [];
         }
-      });
+        routes[m2][path22].push([handler, path22]);
+      }
     }
   }
   match = match;
   buildAllMatchers() {
-    const matchers = /* @__PURE__ */ Object.create(null);
-    Object.keys(this.#routes).concat(Object.keys(this.#middleware)).forEach((method) => {
-      matchers[method] ||= this.#buildMatcher(method);
-    });
+    const matchers = createNullObject();
+    for (const method of Object.keys(this.#routes)) {
+      matchers[method] = this.#buildMatcher(method);
+    }
     this.#middleware = this.#routes = this.#tries = void 0;
-    clearWildcardRegExpCache();
+    wildcardRegExpCache = createNullObject();
     return matchers;
   }
   #buildMatcher(method) {
     const middleware = this.#middleware[method];
     const routes = this.#routes[method];
     const trie = this.#tries[method];
-    const staticMap = /* @__PURE__ */ Object.create(null);
+    const staticMap = createNullObject();
     const handlerData = [];
-    [middleware, routes].forEach((r2) => {
+    const [regexp, indexReplacementMap, paramReplacementMap] = trie.buildRegExp();
+    for (const r2 of [middleware, routes]) {
       for (const path7 in r2) {
         const handlers = r2[path7];
         const pathData = trie.paths[path7];
         if (!pathData) {
-          staticMap[path7] = [handlers.map(([h2]) => [h2, /* @__PURE__ */ Object.create(null)]), emptyParam];
+          staticMap[path7] = [handlers.map(([h2]) => [h2, createNullObject()]), emptyParam];
           continue;
         }
-        const paramAssoc = pathData[1];
-        handlerData[pathData[0]] = handlers.map(([h2, paramCount]) => {
-          const paramIndexMap = /* @__PURE__ */ Object.create(null);
-          paramCount -= 1;
-          for (; paramCount >= 0; paramCount--) {
-            const [key, value] = paramAssoc[paramCount];
-            paramIndexMap[key] = value;
-          }
-          return [h2, paramIndexMap];
-        });
-      }
-    });
-    const [regexp, indexReplacementMap, paramReplacementMap] = trie.buildRegExp();
-    for (let i2 = 0, len = handlerData.length; i2 < len; i2++) {
-      for (let j = 0, len2 = handlerData[i2].length; j < len2; j++) {
-        const map = handlerData[i2][j]?.[1];
-        if (!map) {
-          continue;
-        }
-        const keys = Object.keys(map);
-        for (let k = 0, len3 = keys.length; k < len3; k++) {
-          map[keys[k]] = paramReplacementMap[map[keys[k]]];
-        }
+        handlerData[pathData[0]] = handlers.map(([h2, handlerPath]) => [
+          h2,
+          trie.paths[handlerPath][1].reduceRight((map, [key], i2) => {
+            map[key] = paramReplacementMap[pathData[1][i2][1]];
+            return map;
+          }, createNullObject())
+        ]);
       }
     }
-    const handlerMap = [];
-    for (const i2 in indexReplacementMap) {
-      handlerMap[i2] = handlerData[indexReplacementMap[i2]];
-    }
-    return [regexp, handlerMap, staticMap];
+    return [regexp, indexReplacementMap.map((i2) => handlerData[i2]), staticMap];
   }
 };
 
@@ -42224,77 +42211,52 @@ var SmartRouter = class {
 };
 
 // node_modules/hono/dist/router/trie-router/node.js
-var emptyParams = /* @__PURE__ */ Object.create(null);
-var hasChildren = (children) => {
-  for (const _ in children) {
-    return true;
-  }
-  return false;
-};
+var emptyParams = createNullObject();
+var order = 0;
 var Node2 = class _Node2 {
-  #methods;
-  #children;
-  #patterns;
-  #order = 0;
+  #methods = [];
+  #children = createNullObject();
+  #patterns = [];
+  #pattern;
   #params = emptyParams;
-  constructor(method, handler, children) {
-    this.#children = children || /* @__PURE__ */ Object.create(null);
-    this.#methods = [];
-    if (method && handler) {
-      const m2 = /* @__PURE__ */ Object.create(null);
-      m2[method] = { handler, possibleKeys: [], score: 0 };
-      this.#methods = [m2];
-    }
-    this.#patterns = [];
-  }
   insert(method, path7, handler) {
-    this.#order = ++this.#order;
     let curNode = this;
     const parts = splitRoutingPath(path7);
-    const possibleKeys = [];
-    for (let i2 = 0, len = parts.length; i2 < len; i2++) {
-      const p = parts[i2];
-      const nextP = parts[i2 + 1];
-      const pattern = getPattern(p, nextP);
-      const key = Array.isArray(pattern) ? pattern[0] : p;
-      if (key in curNode.#children) {
-        curNode = curNode.#children[key];
-        if (pattern) {
-          possibleKeys.push(pattern[1]);
-        }
-        continue;
+    const possibleKeys = /* @__PURE__ */ new Set();
+    let i2 = 0;
+    for (const p of parts) {
+      const nextP = parts[++i2];
+      const pattern = getPattern(p, nextP) || (nextP === void 0 && p && p.indexOf("*") === p.length - 1 ? p : null);
+      const isParam = Array.isArray(pattern);
+      const key = isParam ? pattern[0] : pattern || p;
+      const child = curNode.#children[key] ||= new _Node2();
+      if (pattern && !child.#pattern) {
+        child.#pattern = pattern;
+        curNode.#patterns.push(child);
       }
-      curNode.#children[key] = new _Node2();
-      if (pattern) {
-        curNode.#patterns.push(pattern);
-        possibleKeys.push(pattern[1]);
+      curNode = child;
+      if (isParam) {
+        possibleKeys.add(pattern[1]);
       }
-      curNode = curNode.#children[key];
     }
     curNode.#methods.push({
       [method]: {
         handler,
-        possibleKeys: possibleKeys.filter((v, i2, a) => a.indexOf(v) === i2),
-        score: this.#order
+        possibleKeys: [...possibleKeys],
+        score: ++order
       }
     });
-    return curNode;
   }
   #pushHandlerSets(handlerSets, node, method, nodeParams, params) {
     for (let i2 = 0, len = node.#methods.length; i2 < len; i2++) {
       const m2 = node.#methods[i2];
       const handlerSet = m2[method] || m2[METHOD_NAME_ALL];
-      const processedSet = {};
-      if (handlerSet !== void 0) {
-        handlerSet.params = /* @__PURE__ */ Object.create(null);
+      if (handlerSet) {
+        handlerSet.params = createNullObject();
         handlerSets.push(handlerSet);
-        if (nodeParams !== emptyParams || params && params !== emptyParams) {
-          for (let i22 = 0, len2 = handlerSet.possibleKeys.length; i22 < len2; i22++) {
-            const key = handlerSet.possibleKeys[i22];
-            const processed = processedSet[handlerSet.score];
-            handlerSet.params[key] = params?.[key] && !processed ? params[key] : nodeParams[key] ?? params?.[key];
-            processedSet[handlerSet.score] = true;
-          }
+        for (let i22 = 0, len2 = handlerSet.possibleKeys.length; i22 < len2; i22++) {
+          const key = handlerSet.possibleKeys[i22];
+          handlerSet.params[key] = params?.[key] && !i22 ? params[key] : nodeParams[key] ?? params?.[key];
         }
       }
     }
@@ -42326,33 +42288,33 @@ var Node2 = class _Node2 {
             tempNodes.push(nextNode);
           }
         }
-        for (let k = 0, len3 = node.#patterns.length; k < len3; k++) {
-          const pattern = node.#patterns[k];
+        for (const child of node.#patterns) {
+          const pattern = child.#pattern;
           const params = node.#params === emptyParams ? {} : { ...node.#params };
-          if (pattern === "*") {
-            const astNode = node.#children["*"];
-            if (astNode) {
-              this.#pushHandlerSets(handlerSets, astNode, method, node.#params);
-              astNode.#params = params;
-              tempNodes.push(astNode);
+          if (typeof pattern === "string") {
+            if (pattern === "*" || part.startsWith(pattern.slice(0, -1))) {
+              this.#pushHandlerSets(handlerSets, child, method, node.#params);
+              if (pattern === "*") {
+                child.#params = params;
+                tempNodes.push(child);
+              }
             }
             continue;
           }
-          const [key, name, matcher] = pattern;
-          if (!part && !(matcher instanceof RegExp)) {
+          const [, name, matcher] = pattern;
+          if (!part && matcher === true) {
             continue;
           }
-          const child = node.#children[key];
-          if (matcher instanceof RegExp) {
-            if (partOffsets === null) {
-              partOffsets = new Array(len);
+          if (matcher !== true) {
+            if (!partOffsets) {
+              partOffsets = [];
               let offset = path7[0] === "/" ? 1 : 0;
               for (let p = 0; p < len; p++) {
                 partOffsets[p] = offset;
                 offset += parts[p].length + 1;
               }
             }
-            const restPathString = path7.substring(partOffsets[i2]);
+            const restPathString = path7.slice(partOffsets[i2]);
             const m2 = matcher.exec(restPathString);
             if (m2) {
               params[name] = m2[0];
@@ -42366,11 +42328,12 @@ var Node2 = class _Node2 {
                   params
                 );
               }
-              if (hasChildren(child.#children)) {
+              for (const _ in child.#children) {
                 child.#params = params;
-                const componentCount = m2[0].match(/\//)?.length ?? 0;
+                const componentCount = m2[0].match(/\//g)?.length ?? 0;
                 const targetCurNodes = curNodesQueue[componentCount] ||= [];
                 targetCurNodes.push(child);
+                break;
               }
               continue;
             }
@@ -42398,7 +42361,7 @@ var Node2 = class _Node2 {
       const shifted = curNodesQueue.shift();
       curNodes = shifted ? tempNodes.concat(shifted) : tempNodes;
     }
-    if (handlerSets.length > 1) {
+    if (handlerSets[1]) {
       handlerSets.sort((a, b) => {
         return a.score - b.score;
       });
@@ -42410,19 +42373,11 @@ var Node2 = class _Node2 {
 // node_modules/hono/dist/router/trie-router/router.js
 var TrieRouter = class {
   name = "TrieRouter";
-  #node;
-  constructor() {
-    this.#node = new Node2();
-  }
+  #node = new Node2();
   add(method, path7, handler) {
-    const results = checkOptionalParameter(path7);
-    if (results) {
-      for (let i2 = 0, len = results.length; i2 < len; i2++) {
-        this.#node.insert(method, results[i2], handler);
-      }
-      return;
+    for (const result of checkOptionalParameter(path7) || [path7]) {
+      this.#node.insert(method, result, handler);
     }
-    this.#node.insert(method, path7, handler);
   }
   match(method, path7) {
     return this.#node.search(method, path7);
@@ -42453,6 +42408,8 @@ var cors = (options) => {
     exposeHeaders: [],
     ...options
   };
+  const exposeHeadersStr = opts.exposeHeaders?.length ? opts.exposeHeaders.join(",") : void 0;
+  const allowHeadersStr = opts.allowHeaders?.length ? opts.allowHeaders.join(",") : void 0;
   const findAllowOrigin = ((optsOrigin) => {
     if (typeof optsOrigin === "string") {
       if (optsOrigin === "*") {
@@ -42468,11 +42425,12 @@ var cors = (options) => {
   })(opts.origin);
   const findAllowMethods = ((optsAllowMethods) => {
     if (typeof optsAllowMethods === "function") {
-      return optsAllowMethods;
+      return async (origin, c) => (await optsAllowMethods(origin, c)).join(",");
     } else if (Array.isArray(optsAllowMethods)) {
-      return () => optsAllowMethods;
+      const methodsStr = optsAllowMethods.join(",");
+      return () => methodsStr;
     } else {
-      return () => [];
+      return () => "";
     }
   })(opts.allowMethods);
   return async function cors2(c, next) {
@@ -42486,29 +42444,29 @@ var cors = (options) => {
     if (opts.credentials) {
       set("Access-Control-Allow-Credentials", "true");
     }
-    if (opts.exposeHeaders?.length) {
-      set("Access-Control-Expose-Headers", opts.exposeHeaders.join(","));
+    if (exposeHeadersStr) {
+      set("Access-Control-Expose-Headers", exposeHeadersStr);
     }
     if (c.req.method === "OPTIONS") {
       if (opts.origin !== "*") {
-        set("Vary", "Origin");
+        c.res.headers.append("Vary", "Origin");
       }
       if (opts.maxAge != null) {
         set("Access-Control-Max-Age", opts.maxAge.toString());
       }
       const allowMethods = await findAllowMethods(c.req.header("origin") || "", c);
-      if (allowMethods.length) {
-        set("Access-Control-Allow-Methods", allowMethods.join(","));
+      if (allowMethods) {
+        set("Access-Control-Allow-Methods", allowMethods);
       }
-      let headers = opts.allowHeaders;
-      if (!headers?.length) {
+      let headersStr = allowHeadersStr;
+      if (!headersStr) {
         const requestHeaders = c.req.header("Access-Control-Request-Headers");
         if (requestHeaders) {
-          headers = requestHeaders.split(",").map((h2) => h2.trim());
+          headersStr = requestHeaders.split(",").map((h2) => h2.trim()).join(",");
         }
       }
-      if (headers?.length) {
-        set("Access-Control-Allow-Headers", headers.join(","));
+      if (headersStr) {
+        set("Access-Control-Allow-Headers", headersStr);
         c.res.headers.append("Vary", "Access-Control-Request-Headers");
       }
       c.res.headers.delete("Content-Length");
@@ -42716,14 +42674,17 @@ function getPermissionsPolicyDirectives(policy) {
   return Object.entries(policy).map(([directive, value]) => {
     const kebabDirective = camelToKebab(directive);
     if (typeof value === "boolean") {
-      return `${kebabDirective}=${value ? "*" : "none"}`;
+      return `${kebabDirective}=${value ? "*" : "()"}`;
     }
     if (Array.isArray(value)) {
       if (value.length === 0) {
         return `${kebabDirective}=()`;
       }
-      if (value.length === 1 && (value[0] === "*" || value[0] === "none")) {
-        return `${kebabDirective}=${value[0]}`;
+      if (value.length === 1 && value[0] === "*") {
+        return `${kebabDirective}=*`;
+      }
+      if (value.length === 1 && value[0] === "none") {
+        return `${kebabDirective}=()`;
       }
       const allowlist = value.map((item) => ["self", "src"].includes(item) ? item : `"${item}"`);
       return `${kebabDirective}=(${allowlist.join(" ")})`;
@@ -46352,7 +46313,8 @@ __export(sqlite_exports, {
   backupTelegramHistory: () => backupTelegramHistory,
   rateLimits: () => rateLimits,
   schemaMetadata: () => schemaMetadata,
-  vault: () => vault
+  vault: () => vault,
+  vaultTombstone: () => vaultTombstone
 });
 
 // node_modules/drizzle-orm/sqlite-core/foreign-keys.js
@@ -49766,7 +49728,13 @@ var vault = sqliteTable("vault", {
   updatedAt: integer2("updated_at"),
   updatedBy: text2("updated_by"),
   sortOrder: integer2("sort_order").default(0),
-  deletedAt: integer2("deleted_at")
+  deletedAt: integer2("deleted_at"),
+  syncVersion: integer2("sync_version").default(0),
+  extraData: text2("extra_data")
+});
+var vaultTombstone = sqliteTable("vault_tombstone", {
+  id: text2("id").primaryKey(),
+  purgedAt: integer2("purged_at").notNull()
 });
 var backupProviders = sqliteTable("backup_providers", {
   id: integer2("id").primaryKey({ autoIncrement: true }),
@@ -49857,7 +49825,8 @@ __export(mysql_exports, {
   backupTelegramHistory: () => backupTelegramHistory2,
   rateLimits: () => rateLimits2,
   schemaMetadata: () => schemaMetadata2,
-  vault: () => vault2
+  vault: () => vault2,
+  vaultTombstone: () => vaultTombstone2
 });
 
 // node_modules/drizzle-orm/mysql-core/foreign-keys.js
@@ -53838,7 +53807,13 @@ var vault2 = mysqlTable("vault", {
   updatedAt: bigint2("updated_at", { mode: "number" }),
   updatedBy: varchar2("updated_by", { length: 255 }),
   sortOrder: bigint2("sort_order", { mode: "number" }).default(0),
-  deletedAt: bigint2("deleted_at", { mode: "number" })
+  deletedAt: bigint2("deleted_at", { mode: "number" }),
+  syncVersion: bigint2("sync_version", { mode: "number" }).default(0),
+  extraData: longtext("extra_data")
+});
+var vaultTombstone2 = mysqlTable("vault_tombstone", {
+  id: varchar2("id", { length: 36 }).primaryKey(),
+  purgedAt: bigint2("purged_at", { mode: "number" }).notNull()
 });
 var backupProviders2 = mysqlTable("backup_providers", {
   id: int("id").primaryKey().autoincrement(),
@@ -53912,7 +53887,8 @@ __export(pg_exports, {
   backupTelegramHistory: () => backupTelegramHistory3,
   rateLimits: () => rateLimits3,
   schemaMetadata: () => schemaMetadata3,
-  vault: () => vault3
+  vault: () => vault3,
+  vaultTombstone: () => vaultTombstone3
 });
 
 // node_modules/drizzle-orm/pg-core/view-base.js
@@ -57157,7 +57133,13 @@ var vault3 = pgTable("vault", {
   updatedAt: bigint("updated_at", { mode: "number" }),
   updatedBy: varchar("updated_by"),
   sortOrder: bigint("sort_order", { mode: "number" }).default(0),
-  deletedAt: bigint("deleted_at", { mode: "number" })
+  deletedAt: bigint("deleted_at", { mode: "number" }),
+  syncVersion: bigint("sync_version", { mode: "number" }).default(0),
+  extraData: text("extra_data")
+});
+var vaultTombstone3 = pgTable("vault_tombstone", {
+  id: varchar("id").primaryKey(),
+  purgedAt: bigint("purged_at", { mode: "number" }).notNull()
 });
 var backupProviders3 = pgTable("backup_providers", {
   id: serial("id").primaryKey(),
@@ -57224,6 +57206,7 @@ var schemaMetadata3 = pgTable("_schema_metadata", {
 // src/shared/db/schema/index.ts
 var engine = typeof process !== "undefined" && process.env.DB_ENGINE ? process.env.DB_ENGINE.toLowerCase() : "sqlite";
 var vault4;
+var vaultTombstone4;
 var backupProviders4;
 var backupTelegramHistory4;
 var backupEmailHistory4;
@@ -57233,6 +57216,7 @@ var rateLimits4;
 var schemaMetadata4;
 if (engine === "mysql") {
   vault4 = vault2;
+  vaultTombstone4 = vaultTombstone2;
   backupProviders4 = backupProviders2;
   backupTelegramHistory4 = backupTelegramHistory2;
   backupEmailHistory4 = backupEmailHistory2;
@@ -57242,6 +57226,7 @@ if (engine === "mysql") {
   schemaMetadata4 = schemaMetadata2;
 } else if (engine === "postgres" || engine === "postgresql") {
   vault4 = vault3;
+  vaultTombstone4 = vaultTombstone3;
   backupProviders4 = backupProviders3;
   backupTelegramHistory4 = backupTelegramHistory3;
   backupEmailHistory4 = backupEmailHistory3;
@@ -57251,6 +57236,7 @@ if (engine === "mysql") {
   schemaMetadata4 = schemaMetadata3;
 } else {
   vault4 = vault;
+  vaultTombstone4 = vaultTombstone;
   backupProviders4 = backupProviders;
   backupTelegramHistory4 = backupTelegramHistory;
   backupEmailHistory4 = backupEmailHistory;
@@ -57296,13 +57282,26 @@ var SessionRepository = class {
     await this.db.delete(authSessions4).where(conditions);
     return countRes.length;
   }
-  async updateLastActive(sessionId, ipAddress, timestamp3, deviceType) {
+  async deleteOtherSessionsByDeviceId(userId, deviceId, excludeSessionId) {
+    const conditions = and(
+      eq(authSessions4.userId, userId),
+      eq(authSessions4.deviceId, deviceId),
+      ne(authSessions4.id, excludeSessionId)
+    );
+    const countRes = await this.db.select().from(authSessions4).where(conditions);
+    await this.db.delete(authSessions4).where(conditions);
+    return countRes.length;
+  }
+  async updateLastActive(sessionId, ipAddress, timestamp3, deviceType, deviceId) {
     const updateData = {
       lastActiveAt: timestamp3,
       ipAddress
     };
     if (deviceType) {
       updateData.deviceType = deviceType;
+    }
+    if (deviceId) {
+      updateData.deviceId = deviceId;
     }
     const result = await this.db.update(authSessions4).set(updateData).where(eq(authSessions4.id, sessionId)).execute();
     return result.success;
@@ -57313,14 +57312,28 @@ var SessionRepository = class {
     await this.db.delete(authSessions4).where(conditions);
     return countRes.length;
   }
+  async cleanupExpiredPairingTickets(userId, cutoffTimestamp) {
+    const conditions = and(
+      eq(authSessions4.userId, userId),
+      eq(authSessions4.deviceType, "Pairing_Ticket"),
+      lt(authSessions4.createdAt, cutoffTimestamp)
+    );
+    const countRes = await this.db.select().from(authSessions4).where(conditions);
+    await this.db.delete(authSessions4).where(conditions);
+    return countRes.length;
+  }
 };
 
 // src/shared/utils/ua.ts
 function parseUserAgent(ua) {
   if (!ua || ua === "Unknown Device") return "Unknown Device";
   let isExtension = false;
+  let isApp = false;
   let actualUa = ua;
-  if (ua.startsWith("NodeAuthExtension/")) {
+  if (ua.startsWith("NodeAuthApp/")) {
+    isApp = true;
+    actualUa = ua.replace("NodeAuthApp/", "") || "Mobile";
+  } else if (ua.startsWith("NodeAuthExtension/")) {
     isExtension = true;
     actualUa = ua.replace("NodeAuthExtension/", "") || "Unknown";
   }
@@ -57361,8 +57374,11 @@ function parseUserAgent(ua) {
   else if (dt.includes("opios/")) browser = "Opera";
   else if (dt.includes("safari/") && !dt.includes("chrome/") && !dt.includes("crios/") && !dt.includes("fxios/") && !dt.includes("edgios/") && !dt.includes("opios/") && !dt.includes("chromium/")) browser = "Safari";
   const osFull = osVersion ? `${os} ${osVersion}` : os;
+  if (isApp) {
+    return `NodeAuth App on ${osFull !== "Unknown OS" ? osFull : actualUa}`;
+  }
   if (isExtension) {
-    return `${browser} NodeAuth Extension on ${osFull}`;
+    return `Extension on ${os} ${browser}`;
   }
   return `${browser} on ${osFull}`;
 }
@@ -57438,7 +57454,8 @@ var SessionService = class {
    */
   async getUserSessions(_userId, currentSessionId) {
     const sessions = await this.repo.findAll();
-    return sessions.map((s2) => ({
+    const activeSessions = sessions.filter((s2) => s2.deviceType !== "Pairing_Ticket" && s2.deviceType !== "Pending_Mobile_Pairing");
+    return activeSessions.map((s2) => ({
       id: s2.id,
       userId: maskUserId(s2.userId),
       // 🛡️ 架构师修复：脱敏处理
@@ -57488,7 +57505,7 @@ var SessionService = class {
   /**
    * Quick boolean valid check for incoming requests
    */
-  async validateSession(sessionId) {
+  async validateSession(sessionId, userAgentToUpgrade) {
     if (!sessionId) return false;
     const session = await this.repo.findById(sessionId);
     if (!session) return false;
@@ -57531,7 +57548,8 @@ async function authMiddleware(c, next) {
     throw new AppError("session_invalid_schema", 401);
   }
   const sessionService = new SessionService(c.env);
-  const isValid2 = await sessionService.validateSession(sessionId);
+  const userAgent = c.req.header("User-Agent");
+  const isValid2 = await sessionService.validateSession(sessionId, userAgent);
   if (!isValid2) {
     throw new AppError("session_kicked_out", 401);
   }
@@ -60080,7 +60098,6 @@ async function validateCertificatePath(x5cCertsPEM, trustAnchorsPEM = []) {
   if (trustAnchorsPEM.length === 0) {
     return true;
   }
-  const WebCrypto = await getWebCrypto();
   const x5cCertsParsed = x5cCertsPEM.map((certPEM) => new import_x5092.X509Certificate(certPEM));
   for (let i2 = 0; i2 < x5cCertsParsed.length; i2++) {
     const cert = x5cCertsParsed[i2];
@@ -60125,40 +60142,35 @@ ${certPEM}`, { cause: _err });
   if (validTrustAnchors.length === 0) {
     throw new Error("No specified trust anchor was valid for verifying x5c");
   }
-  let invalidSubjectAndIssuerError = false;
-  for (const anchor of trustAnchorsParsed) {
+  let invalidCertificateChain = true;
+  for (const anchor of validTrustAnchors) {
     try {
       const x5cWithTrustAnchor = x5cCertsParsed.concat([anchor]);
-      if (new Set(x5cWithTrustAnchor).size !== x5cWithTrustAnchor.length) {
+      const numUniqueCerts = new Set(x5cWithTrustAnchor.map((cert) => cert.toString("pem"))).size;
+      if (numUniqueCerts !== x5cWithTrustAnchor.length) {
         throw new Error("Invalid certificate path: found duplicate certificates");
       }
-      for (let i2 = 0; i2 < x5cWithTrustAnchor.length - 1; i2++) {
-        const subject = x5cWithTrustAnchor[i2];
-        const issuer = x5cWithTrustAnchor[i2 + 1];
-        const issuerSignedSubject = await subject.verify({ publicKey: issuer.publicKey, signatureOnly: true }, WebCrypto);
-        if (!issuerSignedSubject) {
-          throw new InvalidSubjectAndIssuer();
-        }
-        if (issuer.subject === issuer.issuer) {
-          const issuerSignedIssuer = await issuer.verify({ publicKey: issuer.publicKey, signatureOnly: true }, WebCrypto);
-          if (!issuerSignedIssuer) {
-            throw new InvalidSubjectAndIssuer();
-          }
-          break;
-        }
+      const x5cLeafCert = x5cCertsParsed[0];
+      let x5cIntermediates = [];
+      if (x5cCertsParsed.length > 1) {
+        x5cIntermediates = x5cCertsParsed.slice(1);
       }
-      invalidSubjectAndIssuerError = false;
+      const chainBuilder = new import_x5092.X509ChainBuilder({ certificates: [...x5cIntermediates, anchor] });
+      const chain = await chainBuilder.build(x5cLeafCert);
+      if (chain.length < numUniqueCerts) {
+        continue;
+      }
+      if (chain[chain.length - 1].subject !== anchor.subject) {
+        continue;
+      }
+      invalidCertificateChain = false;
       break;
     } catch (err) {
-      if (err instanceof InvalidSubjectAndIssuer) {
-        invalidSubjectAndIssuerError = true;
-      } else {
-        throw new Error("Unexpected error while validating certificate path", { cause: err });
-      }
+      throw new Error("Unexpected error while validating certificate path", { cause: err });
     }
   }
-  if (invalidSubjectAndIssuerError) {
-    throw new InvalidSubjectAndIssuer();
+  if (invalidCertificateChain) {
+    throw new InvalidCertificatePath();
   }
   return true;
 }
@@ -60174,11 +60186,11 @@ function assertCertIsWithinValidTimeWindow(certNotBefore, certNotAfter) {
     throw new Error("Certificate is not yet valid or expired");
   }
 }
-var InvalidSubjectAndIssuer = class extends Error {
+var InvalidCertificatePath = class extends Error {
   constructor() {
-    const message = "Subject issuer did not match issuer subject";
+    const message = "x5c could not be chained to any specified trust anchor";
     super(message);
-    this.name = "InvalidSubjectAndIssuer";
+    this.name = "InvalidX5CChain";
   }
 };
 
@@ -60301,24 +60313,48 @@ function parseJWT(jwt) {
   ];
 }
 
+// node_modules/@simplewebauthn/server/esm/helpers/mapJWSAlgToCOSEAlg.js
+function mapJWSAlgToCOSEAlg(alg) {
+  let algCOSE;
+  if (alg === "ES256") {
+    algCOSE = COSEALG.ES256;
+  } else if (alg === "ES384") {
+    algCOSE = COSEALG.ES384;
+  } else if (alg === "ES512") {
+    algCOSE = COSEALG.ES512;
+  } else if (alg === "RS256") {
+    algCOSE = COSEALG.RS256;
+  } else if (alg === "RS384") {
+    algCOSE = COSEALG.RS384;
+  } else if (alg === "RS512") {
+    algCOSE = COSEALG.RS512;
+  } else {
+    throw new Error(`Unable to map JWS algorithm "${alg}" to a COSE algorithm`);
+  }
+  return algCOSE;
+}
+
 // node_modules/@simplewebauthn/server/esm/metadata/verifyJWT.js
 function verifyJWT(jwt, leafCert) {
   const [header, payload, signature] = jwt.split(".");
   const certCOSE = convertX509PublicKeyToCOSE(leafCert);
   const data = isoUint8Array_exports.fromUTF8String(`${header}.${payload}`);
   const signatureBytes = isoBase64URL_exports.toBuffer(signature);
+  const headerJSON = JSON.parse(isoBase64URL_exports.toUTF8String(header));
+  const jwtHeaderHashAlgCOSE = mapJWSAlgToCOSEAlg(headerJSON.alg);
   if (isCOSEPublicKeyEC2(certCOSE)) {
     return verifyEC2({
       data,
       signature: signatureBytes,
       cosePublicKey: certCOSE,
-      shaHashOverride: COSEALG.ES256
+      shaHashOverride: jwtHeaderHashAlgCOSE
     });
   } else if (isCOSEPublicKeyRSA(certCOSE)) {
     return verifyRSA({
       data,
       signature: signatureBytes,
-      cosePublicKey: certCOSE
+      cosePublicKey: certCOSE,
+      shaHashOverride: jwtHeaderHashAlgCOSE
     });
   }
   const kty = certCOSE.get(COSEKEYS.kty);
@@ -60524,6 +60560,38 @@ Mx86OyXShkDOOyyGeMlhLxS67ttVb9+E7gUJTb0o2HLO02JQZR7rkpeDMdmztcpH
 WD9f
 -----END CERTIFICATE-----
  `;
+var GlobalSign_Root_R46 = `-----BEGIN CERTIFICATE-----
+MIIFWjCCA0KgAwIBAgISEdK7udcjGJ5AXwqdLdDfJWfRMA0GCSqGSIb3DQEBDAUA
+MEYxCzAJBgNVBAYTAkJFMRkwFwYDVQQKExBHbG9iYWxTaWduIG52LXNhMRwwGgYD
+VQQDExNHbG9iYWxTaWduIFJvb3QgUjQ2MB4XDTE5MDMyMDAwMDAwMFoXDTQ2MDMy
+MDAwMDAwMFowRjELMAkGA1UEBhMCQkUxGTAXBgNVBAoTEEdsb2JhbFNpZ24gbnYt
+c2ExHDAaBgNVBAMTE0dsb2JhbFNpZ24gUm9vdCBSNDYwggIiMA0GCSqGSIb3DQEB
+AQUAA4ICDwAwggIKAoICAQCsrHQy6LNl5brtQyYdpokNRbopiLKkHWPd08EsCVeJ
+OaFV6Wc0dwxu5FUdUiXSE2te4R2pt32JMl8Nnp8semNgQB+msLZ4j5lUlghYruQG
+vGIFAha/r6gjA7aUD7xubMLL1aa7DOn2wQL7Id5m3RerdELv8HQvJfTqa1VbkNud
+316HCkD7rRlr+/fKYIje2sGP1q7Vf9Q8g+7XFkyDRTNrJ9CG0Bwta/OrffGFqfUo
+0q3v84RLHIf8E6M6cqJaESvWJ3En7YEtbWaBkoe0G1h6zD8K+kZPTXhc+CtI4wSE
+y132tGqzZfxCnlEmIyDLPRT5ge1lFgBPGmSXZgjPjHvjK8Cd+RTyG/FWaha/LIWF
+zXg4mutCagI0GIMXTpRW+LaCtfOW3T3zvn8gdz57GSNrLNRyc0NXfeD412lPFzYE
++cCQYDdF3uYM2HSNrpyibXRdQr4G9dlkbgIQrImwTDsHTUB+JMWKmIJ5jqSngiCN
+I/onccnfxkF0oE32kRbcRoxfKWMxWXEM2G/CtjJ9++ZdU6Z+Ffy7dXxd7Pj2Fxzs
+x2sZy/N78CsHpdlseVR2bJ0cpm4O6XkMqCNqo98bMDGfsVR7/mrLZqrcZdCinkqa
+ByFrgY/bxFn63iLABJzjqls2k+g9vXqhnQt2sQvHnf3PmKgGwvgqo6GDoLclcqUC
+4wIDAQABo0IwQDAOBgNVHQ8BAf8EBAMCAYYwDwYDVR0TAQH/BAUwAwEB/zAdBgNV
+HQ4EFgQUA1yrc4GHqMywptWU4jaWSf8FmSwwDQYJKoZIhvcNAQEMBQADggIBAHx4
+7PYCLLtbfpIrXTncvtgdokIzTfnvpCo7RGkerNlFo048p9gkUbJUHJNOxO97k4Vg
+JuoJSOD1u8fpaNK7ajFxzHmuEajwmf3lH7wvqMxX63bEIaZHU1VNaL8FpO7XJqti
+2kM3S+LGteWygxk6x9PbTZ4IevPuzz5i+6zoYMzRx6Fcg0XERczzF2sUyQQCPtIk
+pnnpHs6i58FZFZ8d4kuaPp92CC1r2LpXFNqD6v6MVenQTqnMdzGxRBF6XLE+0xRF
+FRhiJBPSy03OXIPBNvIQtQ6IbbjhVp+J3pZmOUdkLG5NrmJ7v2B0GbhWrJKsFjLt
+rWhV/pi60zTe9Mlhww6G9kuEYO4Ne7UyWHmRVSyBQ7N0H3qqJZ4d16GLuc1CLgSk
+ZoNNiTW2bKg2SnkheCLQQrzRQDGQob4Ez8pn7fXwgNNgyYMqIgXQBztSvwyeqiv5
+u+YfjyW6hY0XHgL+XVAEV8/+LbzvXMAaq7afJMbfc2hIkCwU9D9SGuTSyxTDYWnP
+4vkYxboznxSjBF25cfe1lNj2M8FawTSLfJvdkzrnE6JwYZ+vj+vYxXX4M2bUdGc6
+N3ec592kD3ZDZopD8p/7DEJ4Y9HiD2971KE9dJeFt0g5QdYg/NA6s/rob8SKunE3
+vouXsXgxT7PntgMTzlSdriVZzH81Xwj3QEUxeCp6
+-----END CERTIFICATE-----
+`;
 
 // node_modules/@simplewebauthn/server/esm/services/settingsService.js
 var BaseSettingsService = class {
@@ -60573,7 +60641,10 @@ SettingsService.setRootCertificates({
 });
 SettingsService.setRootCertificates({
   identifier: "mds",
-  certificates: [GlobalSign_Root_CA_R3]
+  certificates: [
+    GlobalSign_Root_CA_R3,
+    GlobalSign_Root_R46
+  ]
 });
 
 // node_modules/@simplewebauthn/server/esm/metadata/verifyMDSBlob.js
@@ -61394,7 +61465,8 @@ async function verifyAttestationPacked(options) {
     verified = await verifySignature({
       signature: sig,
       data: signatureBase,
-      x509Certificate: x5c[0]
+      x509Certificate: x5c[0],
+      hashAlgorithm: alg
     });
   } else {
     verified = await verifySignature({
@@ -61477,7 +61549,8 @@ async function verifyAttestationAndroidSafetyNet(options) {
   const verified = await verifySignature({
     signature: signatureBuffer,
     data: signatureBaseBuffer,
-    x509Certificate: leafCertBuffer
+    x509Certificate: leafCertBuffer,
+    hashAlgorithm: alg
   });
   return verified;
 }
@@ -70594,6 +70667,100 @@ auth.post("/extension-session", authMiddleware, rateLimit({
     token
   });
 });
+auth.post("/pair-intent", authMiddleware, rateLimit({
+  windowMs: 60 * 1e3,
+  // 1分钟内限制触发
+  max: 5
+  // 同一 IP 最多尝试 5 次配对
+}), async (c) => {
+  const user = c.get("user");
+  const clientIp = getClientIp(c);
+  const service = getSessionService(c);
+  const ticketId = await service.createSession(
+    user.email || user.id,
+    "Pairing_Ticket",
+    clientIp,
+    void 0,
+    "mobile"
+  );
+  const expiresAt = Date.now() + 5 * 60 * 1e3;
+  try {
+    await service.repo.cleanupExpiredPairingTickets(user.email || user.id, Date.now() - 5 * 60 * 1e3);
+  } catch (e2) {
+    console.error("[PairIntent] Failed to cleanup expired tickets:", e2);
+  }
+  return c.json({
+    success: true,
+    ticketId,
+    expiresAt
+  });
+});
+auth.get("/pair-status", authMiddleware, async (c) => {
+  const user = c.get("user");
+  const ticketId = c.req.query("ticketId");
+  if (!ticketId) return c.json({ error: "Missing ticketId" }, 400);
+  const service = getSessionService(c);
+  const session = await service.repo.findById(ticketId);
+  if (!session) {
+    return c.json({ error: "Ticket not found or expired" }, 404);
+  }
+  if (session.userId !== (user.email || user.id)) {
+    return c.json({ error: "Forbidden" }, 403);
+  }
+  if (session.deviceType === "Pairing_Ticket") {
+    return c.json({ status: "pending" });
+  }
+  return c.json({ status: "confirmed" });
+});
+auth.post("/pair-confirm", rateLimit({
+  windowMs: 60 * 1e3,
+  max: 10
+}), async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const ticketId = body?.ticketId;
+  let deviceId = body?.deviceId;
+  if (!ticketId || typeof ticketId !== "string") {
+    return c.json({ error: "Invalid or expired ticket" }, 404);
+  }
+  if (typeof deviceId === "string" && deviceId.length > 64) {
+    deviceId = deviceId.substring(0, 64);
+  } else if (!deviceId || typeof deviceId !== "string") {
+    deviceId = crypto.randomUUID();
+  }
+  const service = getSessionService(c);
+  const session = await service.repo.findById(ticketId);
+  if (!session) {
+    return c.json({ error: "Invalid or expired ticket" }, 404);
+  }
+  if (session.deviceType !== "Pairing_Ticket") {
+    return c.json({ error: "Ticket already claimed or invalid" }, 400);
+  }
+  if (Date.now() - session.createdAt > 5 * 60 * 1e3) {
+    return c.json({ error: "Ticket expired" }, 400);
+  }
+  const userAgent = c.req.header("User-Agent") || "Unknown";
+  const newDeviceType = `NodeAuthApp/${userAgent}`;
+  const clientIp = getClientIp(c);
+  await service.repo.updateLastActive(ticketId, clientIp, Date.now(), newDeviceType, deviceId);
+  if (deviceId) {
+    await service.repo.deleteOtherSessionsByDeviceId(session.userId, deviceId, ticketId);
+  }
+  const payload = {
+    sessionId: ticketId,
+    userInfo: {
+      id: session.userId,
+      username: session.userId,
+      email: session.userId,
+      provider: session.provider
+    }
+  };
+  const { generateSecureJWT: generateSecureJWT2 } = await Promise.resolve().then(() => (init_crypto(), crypto_exports));
+  const token = await generateSecureJWT2(payload, c.env.JWT_SECRET || "", 365 * 24 * 60 * 60);
+  return c.json({
+    success: true,
+    token
+  });
+});
 var authRoutes_default = auth;
 
 // src/shared/db/db.ts
@@ -71462,6 +71629,17 @@ var VaultRepository = class {
     return await this.db.select().from(vault4).orderBy(desc(vault4.sortOrder), desc(vault4.createdAt));
   }
   /**
+   * 获取自指定时间戳以来所有新增、修改、软删除的数据 (增量同步水位线专用)
+   */
+  async findUpdatedSince(sinceTimestamp, limitVal = 500, offsetVal = 0) {
+    if (!this.db || typeof this.db.select !== "function") {
+      return [];
+    }
+    const baseQuery = this.db.select().from(vault4);
+    const queryWithWhere = sinceTimestamp && sinceTimestamp > 0 ? baseQuery.where(sql`${vault4.updatedAt} > ${sinceTimestamp}`) : baseQuery;
+    return await queryWithWhere.orderBy(desc(vault4.updatedAt)).limit(limitVal).offset(offsetVal);
+  }
+  /**
    * 获取当前最大排序值
    */
   async getMaxSortOrder() {
@@ -71569,6 +71747,13 @@ var VaultRepository = class {
     return result[0];
   }
   /**
+   * 根据多个 ID 批量获取 items (包含已软删的)
+   */
+  async findByIds(ids) {
+    if (!ids || ids.length === 0) return [];
+    return await this.db.select().from(vault4).where(inArray(vault4.id, ids));
+  }
+  /**
    * 根据 service/account 查找记录 (大小写不敏感，自动 trim)
    * 只匹配未被软删除的记录
    */
@@ -71625,10 +71810,22 @@ var VaultRepository = class {
   async update(id, data, expectedUpdatedAt) {
     const existing = await this.findById(id);
     if (!existing) return void 0;
-    if (expectedUpdatedAt !== void 0 && existing.updatedAt !== expectedUpdatedAt) {
+    if (expectedUpdatedAt !== void 0 && existing.updatedAt && existing.updatedAt > expectedUpdatedAt) {
       return void 0;
     }
-    await this.db.update(vault4).set({ ...data, updatedAt: Date.now() }).where(eq(vault4.id, id));
+    const newVersion = (existing.syncVersion || 0) + 1;
+    await this.db.update(vault4).set({ ...data, syncVersion: newVersion }).where(eq(vault4.id, id));
+    return await this.findById(id);
+  }
+  /**
+   * BYOS 专用更新通道：无条件写入 (跨端同步引擎专用)
+   * LWW 等冲突校验已在业务层解决，此处只负责高效落库并承接跨端传来的准确 syncVersion
+   */
+  async byosSyncUpdate(id, data) {
+    const existing = await this.findById(id);
+    if (!existing) return void 0;
+    const newVersion = data.syncVersion !== void 0 ? data.syncVersion : (existing.syncVersion || 0) + 1;
+    await this.db.update(vault4).set({ ...data, syncVersion: newVersion }).where(eq(vault4.id, id));
     return await this.findById(id);
   }
   /**
@@ -71652,22 +71849,55 @@ var VaultRepository = class {
     }
   }
   /**
-   * 删除单个 item (支持乐观锁校验)
+   * 记录物理删除墓碑 (Tombstones)
+   */
+  async addTombstones(ids) {
+    if (!ids || ids.length === 0 || !this.db) return;
+    const now = Date.now();
+    const BATCH_SIZE = 50;
+    for (let i2 = 0; i2 < ids.length; i2 += BATCH_SIZE) {
+      const chunk = ids.slice(i2, i2 + BATCH_SIZE);
+      const records = chunk.map((id) => ({ id, purgedAt: now }));
+      try {
+        if (typeof this.db.insert === "function") {
+          await this.db.insert(vaultTombstone4).values(records).onConflictDoNothing();
+        }
+      } catch (_) {
+      }
+    }
+  }
+  /**
+   * 查询自 sinceTimestamp 以来所有被物理硬删除的墓碑 ID 列表 (增量水位线专用)
+   */
+  async findPurgedSince(sinceTimestamp, limitVal = 500, offsetVal = 0) {
+    if (!this.db || typeof this.db.select !== "function") return [];
+    if (!sinceTimestamp || sinceTimestamp <= 0) return [];
+    try {
+      const rows = await this.db.select({ id: vaultTombstone4.id }).from(vaultTombstone4).where(sql`${vaultTombstone4.purgedAt} > ${sinceTimestamp}`).orderBy(desc(vaultTombstone4.purgedAt)).limit(limitVal).offset(offsetVal);
+      return (rows || []).map((r2) => r2.id);
+    } catch (_) {
+      return [];
+    }
+  }
+  /**
+   * 删除单个 item (支持乐观锁校验与墓碑联动)
    */
   async delete(id, expectedUpdatedAt) {
     const existing = await this.findById(id);
     if (!existing) return false;
-    if (expectedUpdatedAt !== void 0 && existing.updatedAt !== expectedUpdatedAt) {
+    if (expectedUpdatedAt !== void 0 && existing.updatedAt && existing.updatedAt > expectedUpdatedAt) {
       return false;
     }
+    await this.addTombstones([id]);
     await this.db.delete(vault4).where(eq(vault4.id, id));
     return true;
   }
   /**
-   * 批量删除
+   * 批量删除 (带墓碑联动)
    */
   async batchDelete(ids) {
     if (!ids || ids.length === 0) return 0;
+    await this.addTombstones(ids);
     let deletedCount = 0;
     const BATCH_SIZE = 50;
     for (let i2 = 0; i2 < ids.length; i2 += BATCH_SIZE) {
@@ -71698,11 +71928,16 @@ var VaultRepository = class {
     return count;
   }
   /**
-   * TRASH: 清空回收站
+   * TRASH: 清空回收站 (自动记录墓碑)
    */
   async emptyTrashPhysical() {
+    const trashed = await this.findDeleted();
+    const ids = trashed.map((t2) => t2.id);
+    if (ids.length > 0) {
+      await this.addTombstones(ids);
+    }
     await this.db.delete(vault4).where(sql`${vault4.deletedAt} IS NOT NULL`);
-    return 1;
+    return ids.length;
   }
   /**
    * TRASH: 统计软删除的数量
@@ -71710,6 +71945,328 @@ var VaultRepository = class {
   async countDeleted() {
     const result = await this.db.select({ count: sql`count(*)` }).from(vault4).where(sql`${vault4.deletedAt} IS NOT NULL`);
     return result[0]?.count || 0;
+  }
+};
+
+// src/features/vault/byosSyncService.ts
+var ByosSyncService = class {
+  repository;
+  env;
+  encryptionKey;
+  constructor(env, repository) {
+    this.env = env;
+    this.repository = repository;
+    if (!env.ENCRYPTION_KEY) {
+      throw new AppError("missing_encryption_key", 500);
+    }
+    this.encryptionKey = env.ENCRYPTION_KEY;
+  }
+  normalizeSignature(service, account) {
+    return `${(service || "").toString().trim().toLowerCase()}:${(account || "").toString().trim().toLowerCase()}`;
+  }
+  async batchDeleteAccounts(ids) {
+    if (!ids || ids.length === 0) throw new AppError("no_account_ids", 400);
+    const count = await this.repository.batchDelete(ids);
+    return { count };
+  }
+  async syncUpsertAccount(userId, id, data) {
+    const normalized = normalizeOtpAccount(data);
+    const { service, account, algorithm, digits, period, type, counter, category } = normalized;
+    let secret = normalized.secret;
+    if (!service || !account || !secret) {
+      throw new AppError("invalid_secret_format", 400);
+    }
+    const isZeroKnowledge = secret.startsWith("nodeauth:");
+    if (type !== "steam" && !isZeroKnowledge && !validateBase32Secret(secret)) {
+      throw new AppError("invalid_secret_format", 400);
+    }
+    const finalSecret = await encryptField(secret, this.encryptionKey);
+    const clientTime = data.updatedAt || data.createdAt || Date.now();
+    const clientCreatedAt = data.createdAt || Date.now();
+    const existingById = await this.repository.findById(id);
+    if (existingById) {
+      if (existingById.updatedAt && existingById.updatedAt > clientTime) {
+        return existingById;
+      }
+      await this.repository.update(id, {
+        service,
+        account,
+        category: category || "",
+        secret: finalSecret,
+        algorithm,
+        type,
+        digits,
+        period,
+        counter,
+        updatedAt: clientTime,
+        updatedBy: userId,
+        deletedAt: null
+      });
+      return await this.repository.findById(id);
+    }
+    const existingByServiceAccount = await this.repository.findByServiceAccountAny(service, account);
+    if (existingByServiceAccount) {
+      if (existingByServiceAccount.deletedAt !== null) {
+        await this.repository.update(existingByServiceAccount.id, {
+          service,
+          account,
+          category: category || "",
+          secret: finalSecret,
+          algorithm,
+          type,
+          digits,
+          period,
+          counter,
+          updatedAt: clientTime,
+          updatedBy: userId,
+          deletedAt: null
+        });
+        return await this.repository.findById(existingByServiceAccount.id);
+      }
+      throw new AppError("account_exists", 409);
+    }
+    const maxSort = await this.repository.getMaxSortOrder();
+    const created = await this.repository.create({
+      id,
+      service,
+      account,
+      category: category || "",
+      secret: finalSecret,
+      algorithm,
+      type,
+      digits,
+      period,
+      counter,
+      sortOrder: maxSort + 1,
+      createdAt: clientCreatedAt,
+      createdBy: userId,
+      updatedAt: clientTime,
+      updatedBy: userId,
+      syncVersion: 0,
+      extraData: data.extraData || null
+    });
+    return created;
+  }
+  async syncUpdateAccount(userId, id, data) {
+    const existing = await this.repository.findById(id);
+    if (!existing) throw new AppError("account_not_found", 404);
+    const clientTime = data.updatedAt || Date.now();
+    if (existing.updatedAt && existing.updatedAt > clientTime) {
+      throw new AppError("conflict_detected", 409);
+    }
+    const normalized = normalizeOtpAccount({ ...existing, ...data });
+    let finalSecret = existing.secret;
+    if (data.secret !== void 0) {
+      const isZeroKnowledge = data.secret && data.secret.startsWith("nodeauth:");
+      if (!data.secret || !isZeroKnowledge && normalized.type !== "steam" && !validateBase32Secret(data.secret)) {
+        throw new AppError("invalid_secret_format", 400);
+      }
+      finalSecret = await encryptField(data.secret, this.encryptionKey);
+    }
+    const updatedItem = {
+      service: normalized.service,
+      account: normalized.account,
+      secret: finalSecret,
+      algorithm: normalized.algorithm,
+      type: normalized.type,
+      digits: normalized.digits,
+      period: normalized.period,
+      counter: normalized.counter,
+      category: normalized.category || "",
+      extraData: data.extraData !== void 0 ? data.extraData : existing.extraData,
+      syncVersion: data.syncVersion !== void 0 ? data.syncVersion : existing.syncVersion,
+      updatedAt: clientTime,
+      updatedBy: userId
+    };
+    const success = await this.repository.byosSyncUpdate(id, updatedItem);
+    if (!success) {
+      throw new AppError("conflict_detected", 409);
+    }
+  }
+  async batchSync(userId, actions = [], sinceTimestamp = 0, offsetUpdates = 0, offsetPurged = 0, skipPull = false) {
+    const results = [];
+    if (Array.isArray(actions) && actions.length > 0) {
+      const pureForceDeleteIds = actions.filter((a) => a.type === "delete" && a.data?.force).map((a) => a.id);
+      if (pureForceDeleteIds.length > 0) {
+        try {
+          await this.batchDeleteAccounts(pureForceDeleteIds);
+        } catch (e2) {
+        }
+      }
+      const softDeleteActions = actions.filter((a) => a.type === "delete" && !a.data?.force);
+      const conflictSoftDeleteIds = [];
+      if (softDeleteActions.length > 0) {
+        try {
+          const deleteIds = softDeleteActions.map((a) => a.id);
+          const existingItems = await this.repository.findByIds(deleteIds);
+          const existingMap = new Map(existingItems.map((e2) => [e2.id, e2]));
+          const validUpdates = [];
+          for (const action of softDeleteActions) {
+            const id = action.id;
+            const existing = existingMap.get(id);
+            if (!existing) continue;
+            const clientTime = action.data?.updatedAt || action.data?.deletedAt;
+            if (clientTime !== void 0 && existing.updatedAt && existing.updatedAt > clientTime) {
+              conflictSoftDeleteIds.push(id);
+              continue;
+            }
+            validUpdates.push({
+              id,
+              data: {
+                deletedAt: clientTime || Date.now(),
+                updatedAt: clientTime || Date.now(),
+                updatedBy: userId
+              }
+            });
+          }
+          if (validUpdates.length > 0) {
+            await this.repository.batchUpdate(validUpdates);
+          }
+        } catch (e2) {
+        }
+      }
+      for (const action of actions) {
+        const { type, id, data } = action;
+        try {
+          let res;
+          switch (type) {
+            case "create":
+              try {
+                res = await this.syncUpsertAccount(userId, id, data);
+                results.push({ success: true, type, id: action.id, serverId: res.id });
+              } catch (e2) {
+                if (e2 instanceof AppError && e2.statusCode === 409) {
+                  const existing = await this.repository.findByServiceAccountAny(data.service, data.account);
+                  if (existing) {
+                    results.push({ success: true, type, id: action.id, serverId: existing.id });
+                  } else {
+                    throw e2;
+                  }
+                } else {
+                  throw e2;
+                }
+              }
+              break;
+            case "update":
+              try {
+                await this.syncUpdateAccount(userId, id, data);
+              } catch (e2) {
+                if (e2.statusCode === 409) {
+                  results.push({ success: true, type, id: action.id });
+                } else {
+                  throw e2;
+                }
+              }
+              results.push({ success: true, type, id: action.id });
+              break;
+            case "delete":
+              if (data?.force && pureForceDeleteIds.includes(id)) {
+              } else if (!data?.force && softDeleteActions.some((a) => a.id === id)) {
+                if (conflictSoftDeleteIds.includes(id)) {
+                  throw new AppError("conflict_detected", 409);
+                }
+              } else {
+                try {
+                  const success = await this.repository.delete(id, data?.force ? void 0 : data?.updatedAt);
+                  if (!success) {
+                    const exist = await this.repository.findById(id);
+                    throw new AppError(exist ? "conflict_detected" : "account_not_found", exist ? 409 : 404);
+                  }
+                } catch (e2) {
+                  if (e2 instanceof AppError && e2.statusCode === 404) {
+                  } else {
+                    throw e2;
+                  }
+                }
+              }
+              results.push({ success: true, type, id });
+              break;
+            case "reorder":
+              if (data && Array.isArray(data.ids) && data.ids.length > 0) {
+                const maxSort = await this.repository.getMaxSortOrder();
+                const baseOrder = Math.max(maxSort, data.ids.length * 1e3) + data.ids.length * 1e3;
+                const updates2 = data.ids.map((item_id, index2) => ({
+                  id: item_id,
+                  sortOrder: baseOrder - index2 * 1e3
+                }));
+                await this.repository.updateSortOrders(updates2);
+              }
+              results.push({ success: true, type, id });
+              break;
+            default:
+              results.push({ success: false, type, id, error: "unknown_action" });
+          }
+        } catch (e2) {
+          if (e2.statusCode === 409 || e2.statusCode === 404) {
+            results.push({ success: true, type, id });
+          } else {
+            const errorCode = e2.code || "sync_error";
+            results.push({
+              success: false,
+              type,
+              id,
+              error: e2.message,
+              code: errorCode
+            });
+          }
+        }
+      }
+    }
+    let updatedRecords = [];
+    let purgedIds = [];
+    const limit = 500;
+    if (!skipPull) {
+      try {
+        if (sinceTimestamp !== -1) {
+          if (this.repository && typeof this.repository.findUpdatedSince === "function") {
+            updatedRecords = await this.repository.findUpdatedSince(sinceTimestamp, limit, offsetUpdates);
+          }
+          if (this.repository && typeof this.repository.findPurgedSince === "function") {
+            purgedIds = await this.repository.findPurgedSince(sinceTimestamp, limit, offsetPurged);
+          }
+        }
+      } catch (_) {
+        updatedRecords = [];
+        purgedIds = [];
+      }
+    }
+    const updates = Array.isArray(updatedRecords) ? await Promise.all(updatedRecords.map(async (r2) => {
+      let secret = r2.secret;
+      if (secret) {
+        const res = await decryptField(secret, this.encryptionKey);
+        if (res.success) {
+          secret = res.data;
+        }
+      }
+      return {
+        id: r2.id,
+        service: r2.service,
+        account: r2.account,
+        category: r2.category || null,
+        secret,
+        digits: r2.digits || 6,
+        period: r2.period || 30,
+        type: r2.type || "totp",
+        algorithm: r2.algorithm || "SHA1",
+        counter: r2.counter || 0,
+        createdAt: r2.createdAt,
+        createdBy: r2.createdBy,
+        updatedAt: r2.updatedAt,
+        updatedBy: r2.updatedBy,
+        sortOrder: r2.sortOrder || 0,
+        deletedAt: r2.deletedAt || null,
+        syncVersion: r2.syncVersion || 0,
+        extraData: r2.extraData || null
+      };
+    })) : [];
+    const hasMore = updatedRecords.length === limit || purgedIds.length === limit;
+    return {
+      results,
+      serverTime: Date.now(),
+      updates,
+      purgedIds,
+      hasMore
+    };
   }
 };
 
@@ -71722,6 +72279,10 @@ var getService2 = (c) => {
 var getTrashService = (c) => {
   const repo = new VaultRepository(c.env.DB);
   return new TrashService(c.env, repo);
+};
+var getByosSyncService = (c) => {
+  const repo = new VaultRepository(c.env.DB);
+  return new ByosSyncService(c.env, repo);
 };
 vault5.use("/*", authMiddleware);
 vault5.get("/", async (c) => {
@@ -71882,6 +72443,25 @@ vault5.post("/sync", async (c) => {
   const service = getService2(c);
   const results = await service.batchSync(user.email || user.id, actions);
   return c.json({ success: true, results });
+});
+vault5.post("/byos-sync", async (c) => {
+  const user = c.get("user");
+  const body = await c.req.json();
+  const actions = Array.isArray(body?.actions) ? body.actions : [];
+  const since = typeof body?.since === "number" ? body.since : 0;
+  const offsetUpdates = typeof body?.offsetUpdates === "number" ? body.offsetUpdates : 0;
+  const offsetPurged = typeof body?.offsetPurged === "number" ? body.offsetPurged : 0;
+  const skipPull = body?.skipPull === true;
+  const syncService = getByosSyncService(c);
+  const responseData = await syncService.batchSync(user.email || user.id, actions, since, offsetUpdates, offsetPurged, skipPull);
+  return c.json({
+    success: true,
+    results: responseData.results,
+    updates: responseData.updates,
+    purgedIds: responseData.purgedIds,
+    serverTime: responseData.serverTime,
+    hasMore: responseData.hasMore
+  });
 });
 vault5.post("/migrate-crypto", async (c) => {
   return c.json({ success: true, message: "\u4E0D\u518D\u652F\u6301\u65E7\u7248\u76D0\u503C\u8FC1\u79FB\u903B\u8F91\uFF0C\u6240\u6709\u6570\u636E\u9ED8\u8BA4\u5DF2\u4F7F\u7528\u65B0\u7248\u903B\u8F91", migrated: 0, remaining: 0 });
@@ -85286,7 +85866,14 @@ var BASE_SCHEMA = [
         updated_at INTEGER,
         updated_by TEXT,
         sort_order INTEGER DEFAULT 0,
-        deleted_at INTEGER
+        deleted_at INTEGER,
+        sync_version INTEGER DEFAULT 0,
+        extra_data TEXT
+    )`,
+  // 金库删除墓碑表 (用于多端增量同步彻底删除的物理清理)
+  `CREATE TABLE IF NOT EXISTS vault_tombstone (
+        id TEXT PRIMARY KEY,
+        purged_at INTEGER NOT NULL
     )`,
   // 云端备份源配置表
   `CREATE TABLE IF NOT EXISTS backup_providers (
@@ -85488,6 +86075,20 @@ var MIGRATIONS = [
     sqlite: `ALTER TABLE vault ADD COLUMN counter INTEGER DEFAULT 0;`,
     mysql: `ALTER TABLE vault ADD COLUMN counter BIGINT DEFAULT 0;`,
     postgres: `ALTER TABLE vault ADD COLUMN counter BIGINT DEFAULT 0;`
+  },
+  {
+    version: 13,
+    name: "add_tombstone_indexes",
+    sqlite: `CREATE INDEX IF NOT EXISTS idx_vault_updated_at ON vault(updated_at); CREATE INDEX IF NOT EXISTS idx_vault_tombstone_purged_at ON vault_tombstone(purged_at);`,
+    mysql: `CREATE INDEX idx_vault_updated_at ON vault(updated_at); CREATE INDEX idx_vault_tombstone_purged_at ON vault_tombstone(purged_at);`,
+    postgres: `CREATE INDEX IF NOT EXISTS idx_vault_updated_at ON vault(updated_at); CREATE INDEX IF NOT EXISTS idx_vault_tombstone_purged_at ON vault_tombstone(purged_at);`
+  },
+  {
+    version: 14,
+    name: "add_sync_version_and_extra_data",
+    sqlite: `ALTER TABLE vault ADD COLUMN sync_version INTEGER DEFAULT 0; ALTER TABLE vault ADD COLUMN extra_data TEXT;`,
+    mysql: `ALTER TABLE vault ADD COLUMN sync_version BIGINT DEFAULT 0; ALTER TABLE vault ADD COLUMN extra_data TEXT;`,
+    postgres: `ALTER TABLE vault ADD COLUMN sync_version BIGINT DEFAULT 0; ALTER TABLE vault ADD COLUMN extra_data TEXT;`
   }
 ];
 async function migrateDatabase(db2) {
@@ -91775,6 +92376,7 @@ var DbFactory = class {
         }
         const sqlite = new Database(dbFile);
         sqlite.pragma("journal_mode = WAL");
+        sqlite.pragma("busy_timeout = 10000");
         const executor2 = new SqliteExecutor(sqlite);
         const db2 = drizzle(sqlite, { schema: sqlite_exports });
         return { executor: executor2, db: db2, schema: sqlite_exports };
