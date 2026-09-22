@@ -56,7 +56,7 @@ for (const configPath of configFiles) {
 
             // 保留便捷部署命令
             if (!pkg.scripts) pkg.scripts = {};
-            pkg.scripts.deploy = "npx @prisma/cli app deploy --prod --yes";
+            pkg.scripts.deploy = "npx @prisma/cli@3.0.0-beta.30 app deploy --prod --yes";
 
             // 移除 hono 依赖，以防止 Prisma CLI 错误激活 Hono/Bun 的预设构建设定
             if (pkg.dependencies && pkg.dependencies.hono) {

@@ -52,7 +52,7 @@ jobs:
         uses: wasmerio/setup-wasmer@24b15c95293d23f89c68bd40dac76338f773e924 # v3.1
 
       - name: Deploy NodeAuth to Wasmer Edge
-        run: wasmer deploy --non-interactive --bump --build-remote --owner=${{ secrets.WASMER_OWNER }} --token=${{ secrets.WASMER_TOKEN }}
+        run: wasmer deploy --non-interactive --bump --build-remote --no-wait --owner=${{ secrets.WASMER_OWNER }} --token=${{ secrets.WASMER_TOKEN }}
         working-directory: platforms/wasmer
             
       - name: Success Notification

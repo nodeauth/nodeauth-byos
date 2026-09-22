@@ -52,7 +52,7 @@ jobs:
 
       - name: Deploy via Prisma CLI
         working-directory: platforms/prisma
-        run: npx @prisma/cli app deploy --app ${{ secrets.PRISMA_APP_NAME }} --project ${{ secrets.PRISMA_PROJECT_ID }} --region ${{ secrets.PRISMA_APP_REGION || 'eu-central-1' }} --branch main --prod --yes
+        run: npx @prisma/cli@3.0.0-beta.30 app deploy --app ${{ secrets.PRISMA_APP_NAME }} --project ${{ secrets.PRISMA_PROJECT_ID }} --region ${{ secrets.PRISMA_APP_REGION || 'eu-central-1' }} --branch main --prod --yes
         env:
           PRISMA_SERVICE_TOKEN: ${{ secrets.PRISMA_SERVICE_TOKEN }}
           

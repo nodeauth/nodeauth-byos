@@ -1,12 +1,12 @@
 {
   "name": "nodeauth-worker",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "High-security, Lightweight 2FA/TOTP management tool (Distribution Version)",
   "author": "nodeauth",
   "license": "AGPL-3.0",
   "private": true,
   "scripts": {
-    "deploy": "npx @prisma/cli app deploy --prod --yes"
+    "deploy": "npx @prisma/cli@3.0.0-beta.30 app deploy --prod --yes"
   },
   "dependencies": {
     "better-sqlite3": "^12.8.0",
