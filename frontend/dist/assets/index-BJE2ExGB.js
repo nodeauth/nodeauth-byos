@@ -7083,7 +7083,7 @@ NodeAuth Automatic Backup System`,
     Bc = {
         __name: "theFooter",
         setup (e) {
-            const t = Ut(), a = "__DIST_COMMIT_HASH__", n = "3.0.2";
+            const t = Ut(), a = "93a6a5a", n = "3.0.2";
             return (s, r)=>(G(), ie("footer", Rc, [
                     K("div", Mc, [
                         K("p", null, [
