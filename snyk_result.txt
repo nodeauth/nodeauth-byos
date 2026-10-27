@@ -1,0 +1,54 @@
+
+Testing /home/runner/work/nodeauth-byos-dev/nodeauth-byos-dev...
+
+Organization:      nap0o
+Package manager:   npm
+Target file:       package-lock.json
+Project name:      nodeauth
+Open source:       no
+Project path:      /home/runner/work/nodeauth-byos-dev/nodeauth-byos-dev
+Licenses:          enabled
+
+✔ Tested 64 dependencies for known issues, no vulnerable paths found.
+
+-------------------------------------------------------
+
+Testing /home/runner/work/nodeauth-byos-dev/nodeauth-byos-dev...
+
+Organization:      nap0o
+Package manager:   npm
+Target file:       backend/package-lock.json
+Project name:      backend
+Open source:       no
+Project path:      /home/runner/work/nodeauth-byos-dev/nodeauth-byos-dev
+Licenses:          enabled
+
+✔ Tested 163 dependencies for known issues, no vulnerable paths found.
+
+-------------------------------------------------------
+
+Testing /home/runner/work/nodeauth-byos-dev/nodeauth-byos-dev...
+
+Tested 346 dependencies for known issues, found 1 issue, 1 vulnerable path.
+
+
+Issues with no direct upgrade or patch:
+  ✗ Regular Expression Denial of Service (ReDoS) [High Severity][https://security.snyk.io/vuln/SNYK-JS-PICOMATCH-21248802] in picomatch@2.3.2
+    introduced by @walletconnect/ethereum-provider@2.23.9 > @reown/appkit@1.8.17-wc-circular-dependencies-fix.0 > @reown/appkit-controllers@1.8.17-wc-circular-dependencies-fix.0 > @walletconnect/universal-provider@2.23.2 > @walletconnect/keyvaluestorage@1.1.1 > unstorage@1.17.6 > anymatch@3.1.3 > picomatch@2.3.2
+  No upgrade or patch available
+
+
+
+Organization:      nap0o
+Package manager:   npm
+Target file:       frontend/package-lock.json
+Project name:      frontend
+Open source:       no
+Project path:      /home/runner/work/nodeauth-byos-dev/nodeauth-byos-dev
+Licenses:          enabled
+
+
+Tested 3 projects, 1 contained vulnerable paths.
+
+
+
