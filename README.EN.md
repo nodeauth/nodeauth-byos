@@ -20,7 +20,7 @@
 ## 📖 Deployment
 
 - [Documentation Wiki](https://wiki.nodeauth.io)
-- [Purchase License Key](https://license.nodeauth.io/buy)
+- [Purchase License Key](https://license.nextmatrix.app/buy)
 - [Paid Deployment Service ($9.99)](https://t.me/NodeAuthBot)
 
 ---

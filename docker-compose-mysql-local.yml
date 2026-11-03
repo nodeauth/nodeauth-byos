@@ -30,7 +30,7 @@ services:
 
       # =========== 核心安全参数 ===========
       # [必填] NodeAuth 授权码
-      # 通过 `https://license.nodeauth.io` 获取
+      # 通过 `https://license.nextmatrix.app/byos` 获取
       # 建议使用 `https://tools.nodeauth.io` 对明文进行编码，支持 base64,hex 类型
       - NODEAUTH_LICENSE=your_license_here
 
