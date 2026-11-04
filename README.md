@@ -27,7 +27,7 @@ English | [中文](README.CN.md)
 
 ## 📖 Preview
 
-- [Live Demo](https://demo.nodeauth.io)
+- [Try Online](https://demo.nodeauth.io)
 
 <img height="222" src="https://github.com/user-attachments/assets/20ca3791-841b-4a89-bfe4-ffacfcc7ee9a" />
 
