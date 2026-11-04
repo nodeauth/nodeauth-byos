@@ -1,0 +1,1185 @@
+[
+  {
+    "vulnerabilities": [],
+    "ok": true,
+    "dependencyCount": 64,
+    "org": "nap0o",
+    "policy": "# Snyk (https://snyk.io) policy file, patches or ignores known vulnerabilities.\nversion: v1.25.1\nignore: {}\npatch: {}\n",
+    "isPrivate": true,
+    "licensesPolicy": {
+      "severities": {},
+      "orgLicenseRules": {
+        "AGPL-1.0": {
+          "licenseType": "AGPL-1.0",
+          "severity": "high",
+          "instructions": ""
+        },
+        "AGPL-3.0": {
+          "licenseType": "AGPL-3.0",
+          "severity": "high",
+          "instructions": ""
+        },
+        "Artistic-1.0": {
+          "licenseType": "Artistic-1.0",
+          "severity": "medium",
+          "instructions": ""
+        },
+        "Artistic-2.0": {
+          "licenseType": "Artistic-2.0",
+          "severity": "medium",
+          "instructions": ""
+        },
+        "CDDL-1.0": {
+          "licenseType": "CDDL-1.0",
+          "severity": "medium",
+          "instructions": ""
+        },
+        "CPOL-1.02": {
+          "licenseType": "CPOL-1.02",
+          "severity": "high",
+          "instructions": ""
+        },
+        "EPL-1.0": {
+          "licenseType": "EPL-1.0",
+          "severity": "medium",
+          "instructions": ""
+        },
+        "GPL-2.0": {
+          "licenseType": "GPL-2.0",
+          "severity": "high",
+          "instructions": ""
+        },
+        "GPL-3.0": {
+          "licenseType": "GPL-3.0",
+          "severity": "high",
+          "instructions": ""
+        },
+        "LGPL-2.0": {
+          "licenseType": "LGPL-2.0",
+          "severity": "medium",
+          "instructions": ""
+        },
+        "LGPL-2.1": {
+          "licenseType": "LGPL-2.1",
+          "severity": "medium",
+          "instructions": ""
+        },
+        "LGPL-3.0": {
+          "licenseType": "LGPL-3.0",
+          "severity": "medium",
+          "instructions": ""
+        },
+        "MPL-1.1": {
+          "licenseType": "MPL-1.1",
+          "severity": "medium",
+          "instructions": ""
+        },
+        "MPL-2.0": {
+          "licenseType": "MPL-2.0",
+          "severity": "medium",
+          "instructions": ""
+        },
+        "MS-RL": {
+          "licenseType": "MS-RL",
+          "severity": "medium",
+          "instructions": ""
+        },
+        "SimPL-2.0": {
+          "licenseType": "SimPL-2.0",
+          "severity": "high",
+          "instructions": ""
+        }
+      }
+    },
+    "packageManager": "npm",
+    "ignoreSettings": {
+      "adminOnly": false,
+      "reasonRequired": false,
+      "disregardFilesystemIgnores": false,
+      "autoApproveIgnores": false,
+      "approvalWorkflowEnabled": false
+    },
+    "summary": "No known vulnerabilities",
+    "filesystemPolicy": false,
+    "uniqueCount": 0,
+    "projectName": "nodeauth",
+    "foundProjectCount": 2,
+    "displayTargetFile": "package-lock.json",
+    "hasUnknownVersions": false,
+    "path": "/home/runner/work/nodeauth-byos/nodeauth-byos"
+  },
+  {
+    "vulnerabilities": [
+      {
+        "id": "SNYK-JS-HONONODESERVER-21802762",
+        "title": "Double Decoding of the Same Data",
+        "CVSSv3": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N",
+        "credit": [
+          "manop55555"
+        ],
+        "semver": {
+          "vulnerable": [
+            ">=1.19.10 <2.1.3"
+          ]
+        },
+        "exploit": "Not Defined",
+        "fixedIn": [
+          "2.1.3"
+        ],
+        "patches": [],
+        "insights": {
+          "triageAdvice": null
+        },
+        "language": "js",
+        "severity": "medium",
+        "cvssScore": 6.9,
+        "functions": [],
+        "malicious": false,
+        "isDisputed": false,
+        "moduleName": "@hono/node-server",
+        "references": [
+          {
+            "url": "https://github.com/honojs/node-server/security/advisories/GHSA-rmxm-3fg6-px4f",
+            "title": "GitHub Advisory"
+          },
+          {
+            "url": "https://github.com/honojs/node-server/commit/982179278529d5673812116b042829f27794966f",
+            "title": "GitHub Commit"
+          }
+        ],
+        "cvssDetails": [],
+        "cvssSources": [
+          {
+            "type": "primary",
+            "vector": "CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:L/VI:N/VA:N/SC:N/SI:N/SA:N",
+            "assigner": "Snyk",
+            "severity": "medium",
+            "baseScore": 6.9,
+            "cvssVersion": "4.0",
+            "modificationTime": "2026-10-29T14:04:15.796851Z"
+          },
+          {
+            "type": "secondary",
+            "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N",
+            "assigner": "Snyk",
+            "severity": "medium",
+            "baseScore": 5.3,
+            "cvssVersion": "3.1",
+            "modificationTime": "2026-10-29T14:04:15.796851Z"
+          }
+        ],
+        "description": "## Overview\n[@hono/node-server](https://www.npmjs.org/package/@hono/node-server) is a Node.js Adapter for Hono\n\nAffected versions of this package are vulnerable to Double Decoding of the Same Data via the `serveStatic` middleware in `src/serve-static.ts`, where a percent-encoded path sequence in a request URL is decoded by `tryDecodeURI` before the path traversal check is applied. An attacker can supply a percent-encoded traversal sequence (e.g. `%2e%2e`) in the request path to escape the intended static file root and read arbitrary files from the server's filesystem.\n## Remediation\nUpgrade `@hono/node-server` to version 2.1.3 or higher.\n## References\n- [GitHub Advisory](https://github.com/honojs/node-server/security/advisories/GHSA-rmxm-3fg6-px4f)\n- [GitHub Commit](https://github.com/honojs/node-server/commit/982179278529d5673812116b042829f27794966f)\n",
+        "epssDetails": {
+          "percentile": "0.28918",
+          "probability": "0.00353",
+          "modelVersion": "v2026.06.15"
+        },
+        "identifiers": {
+          "CVE": [
+            "CVE-2026-118663"
+          ],
+          "CWE": [
+            "CWE-174"
+          ],
+          "GHSA": [
+            "GHSA-rmxm-3fg6-px4f"
+          ]
+        },
+        "packageName": "@hono/node-server",
+        "proprietary": false,
+        "creationTime": "2026-10-29T09:16:02.224542Z",
+        "functions_new": [],
+        "alternativeIds": [],
+        "disclosureTime": "2026-10-28T21:05:00Z",
+        "exploitDetails": {
+          "sources": [],
+          "maturityLevels": [
+            {
+              "type": "secondary",
+              "level": "Not Defined",
+              "format": "CVSSv3"
+            },
+            {
+              "type": "primary",
+              "level": "Not Defined",
+              "format": "CVSSv4"
+            }
+          ]
+        },
+        "packageManager": "npm",
+        "publicationTime": "2026-10-29T09:16:02.389024Z",
+        "severityBasedOn": "CVSS",
+        "modificationTime": "2026-10-29T14:04:15.796851Z",
+        "socialTrendAlert": false,
+        "severityWithCritical": "medium",
+        "from": [
+          "backend@*",
+          "@hono/node-server@2.0.12"
+        ],
+        "upgradePath": [
+          false,
+          "@hono/node-server@2.1.3"
+        ],
+        "isUpgradable": true,
+        "isPatchable": false,
+        "name": "@hono/node-server",
+        "version": "2.0.12"
+      },
+      {
+        "id": "SNYK-JS-MINIMATCH-22111072",
+        "title": "Asymmetric Resource Consumption (Amplification)",
+        "CVSSv3": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L",
+        "credit": [
+          "Reid Downing"
+        ],
+        "semver": {
+          "vulnerable": [
+            "<11.0.1"
+          ]
+        },
+        "exploit": "Not Defined",
+        "fixedIn": [
+          "11.0.1"
+        ],
+        "patches": [],
+        "insights": {
+          "triageAdvice": null
+        },
+        "language": "js",
+        "severity": "medium",
+        "cvssScore": 6.9,
+        "functions": [],
+        "malicious": false,
+        "isDisputed": false,
+        "moduleName": "minimatch",
+        "references": [
+          {
+            "url": "https://github.com/isaacs/minimatch/security/advisories/GHSA-g3hv-75wg-m249",
+            "title": "GitHub Advisory"
+          },
+          {
+            "url": "https://github.com/isaacs/minimatch/commit/77a0f5c4b80bdc641c3c930a1d9edf5ad2db57f8",
+            "title": "GitHub Commit"
+          },
+          {
+            "url": "https://github.com/isaacs/minimatch/releases/tag/v11.0.1",
+            "title": "GitHub Release"
+          }
+        ],
+        "cvssDetails": [
+          {
+            "assigner": "Red Hat",
+            "severity": "high",
+            "cvssV3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+            "cvssV3BaseScore": 7.5,
+            "modificationTime": "2026-10-30T16:00:55.863611Z"
+          }
+        ],
+        "cvssSources": [
+          {
+            "type": "primary",
+            "vector": "CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:N/VI:N/VA:L/SC:N/SI:N/SA:N",
+            "assigner": "Snyk",
+            "severity": "medium",
+            "baseScore": 6.9,
+            "cvssVersion": "4.0",
+            "modificationTime": "2026-11-01T07:18:22.906355Z"
+          },
+          {
+            "type": "secondary",
+            "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L",
+            "assigner": "Snyk",
+            "severity": "medium",
+            "baseScore": 5.3,
+            "cvssVersion": "3.1",
+            "modificationTime": "2026-11-01T07:18:22.906355Z"
+          },
+          {
+            "type": "secondary",
+            "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+            "assigner": "Red Hat",
+            "severity": "high",
+            "baseScore": 7.5,
+            "cvssVersion": "3.1",
+            "modificationTime": "2026-10-30T16:00:55.863611Z"
+          }
+        ],
+        "description": "## Overview\n[minimatch](https://www.npmjs.com/package/minimatch) is a minimal matching utility.\n\nAffected versions of this package are vulnerable to Asymmetric Resource Consumption (Amplification) in the `firstPhasePreProcess` method, where the `**/..` transform clones a `globParts` entry and pushes the clone back onto the same array inside a `do...while (didSomething)` fixpoint loop. An attacker can exhaust CPU and memory by supplying a glob pattern whose `**/..` sequences regenerate entries during preprocessing, which `secondPhasePreProcess` then compares in an O(n^2) pairwise `partsMatch` pass over the expanded set. Exploitation requires the pattern to be parsed with `optimizationLevel` set to 2 or higher.\n## Remediation\nUpgrade `minimatch` to version 11.0.1 or higher.\n## References\n- [GitHub Advisory](https://github.com/isaacs/minimatch/security/advisories/GHSA-g3hv-75wg-m249)\n- [GitHub Commit](https://github.com/isaacs/minimatch/commit/77a0f5c4b80bdc641c3c930a1d9edf5ad2db57f8)\n- [GitHub Release](https://github.com/isaacs/minimatch/releases/tag/v11.0.1)\n",
+        "epssDetails": {
+          "percentile": "0.21741",
+          "probability": "0.00291",
+          "modelVersion": "v2026.06.15"
+        },
+        "identifiers": {
+          "CVE": [
+            "CVE-2026-118764"
+          ],
+          "CWE": [
+            "CWE-405"
+          ],
+          "GHSA": [
+            "GHSA-g3hv-75wg-m249"
+          ]
+        },
+        "packageName": "minimatch",
+        "proprietary": false,
+        "creationTime": "2026-11-01T07:18:22.545837Z",
+        "functions_new": [],
+        "alternativeIds": [],
+        "disclosureTime": "2026-10-27T22:00:00Z",
+        "exploitDetails": {
+          "sources": [],
+          "maturityLevels": [
+            {
+              "type": "secondary",
+              "level": "Not Defined",
+              "format": "CVSSv3"
+            },
+            {
+              "type": "primary",
+              "level": "Not Defined",
+              "format": "CVSSv4"
+            }
+          ]
+        },
+        "packageManager": "npm",
+        "publicationTime": "2026-11-01T07:18:22.724939Z",
+        "severityBasedOn": "CVSS",
+        "modificationTime": "2026-11-01T07:18:22.906355Z",
+        "socialTrendAlert": false,
+        "severityWithCritical": "medium",
+        "from": [
+          "backend@*",
+          "webdav@5.11.0",
+          "minimatch@10.2.4"
+        ],
+        "upgradePath": [],
+        "isUpgradable": false,
+        "isPatchable": false,
+        "name": "minimatch",
+        "version": "10.2.4"
+      }
+    ],
+    "ok": false,
+    "dependencyCount": 163,
+    "org": "nap0o",
+    "policy": "# Snyk (https://snyk.io) policy file, patches or ignores known vulnerabilities.\nversion: v1.25.1\nignore: {}\npatch: {}\n",
+    "isPrivate": true,
+    "licensesPolicy": {
+      "severities": {},
+      "orgLicenseRules": {
+        "AGPL-1.0": {
+          "licenseType": "AGPL-1.0",
+          "severity": "high",
+          "instructions": ""
+        },
+        "AGPL-3.0": {
+          "licenseType": "AGPL-3.0",
+          "severity": "high",
+          "instructions": ""
+        },
+        "Artistic-1.0": {
+          "licenseType": "Artistic-1.0",
+          "severity": "medium",
+          "instructions": ""
+        },
+        "Artistic-2.0": {
+          "licenseType": "Artistic-2.0",
+          "severity": "medium",
+          "instructions": ""
+        },
+        "CDDL-1.0": {
+          "licenseType": "CDDL-1.0",
+          "severity": "medium",
+          "instructions": ""
+        },
+        "CPOL-1.02": {
+          "licenseType": "CPOL-1.02",
+          "severity": "high",
+          "instructions": ""
+        },
+        "EPL-1.0": {
+          "licenseType": "EPL-1.0",
+          "severity": "medium",
+          "instructions": ""
+        },
+        "GPL-2.0": {
+          "licenseType": "GPL-2.0",
+          "severity": "high",
+          "instructions": ""
+        },
+        "GPL-3.0": {
+          "licenseType": "GPL-3.0",
+          "severity": "high",
+          "instructions": ""
+        },
+        "LGPL-2.0": {
+          "licenseType": "LGPL-2.0",
+          "severity": "medium",
+          "instructions": ""
+        },
+        "LGPL-2.1": {
+          "licenseType": "LGPL-2.1",
+          "severity": "medium",
+          "instructions": ""
+        },
+        "LGPL-3.0": {
+          "licenseType": "LGPL-3.0",
+          "severity": "medium",
+          "instructions": ""
+        },
+        "MPL-1.1": {
+          "licenseType": "MPL-1.1",
+          "severity": "medium",
+          "instructions": ""
+        },
+        "MPL-2.0": {
+          "licenseType": "MPL-2.0",
+          "severity": "medium",
+          "instructions": ""
+        },
+        "MS-RL": {
+          "licenseType": "MS-RL",
+          "severity": "medium",
+          "instructions": ""
+        },
+        "SimPL-2.0": {
+          "licenseType": "SimPL-2.0",
+          "severity": "high",
+          "instructions": ""
+        }
+      }
+    },
+    "packageManager": "npm",
+    "ignoreSettings": {
+      "adminOnly": false,
+      "reasonRequired": false,
+      "disregardFilesystemIgnores": false,
+      "autoApproveIgnores": false,
+      "approvalWorkflowEnabled": false
+    },
+    "summary": "2 vulnerable dependency paths",
+    "remediation": {
+      "unresolved": [
+        {
+          "id": "SNYK-JS-MINIMATCH-22111072",
+          "title": "Asymmetric Resource Consumption (Amplification)",
+          "CVSSv3": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L",
+          "credit": [
+            "Reid Downing"
+          ],
+          "semver": {
+            "vulnerable": [
+              "<11.0.1"
+            ]
+          },
+          "exploit": "Not Defined",
+          "fixedIn": [
+            "11.0.1"
+          ],
+          "patches": [],
+          "insights": {
+            "triageAdvice": null
+          },
+          "language": "js",
+          "severity": "medium",
+          "cvssScore": 6.9,
+          "functions": [],
+          "malicious": false,
+          "isDisputed": false,
+          "moduleName": "minimatch",
+          "references": [
+            {
+              "url": "https://github.com/isaacs/minimatch/security/advisories/GHSA-g3hv-75wg-m249",
+              "title": "GitHub Advisory"
+            },
+            {
+              "url": "https://github.com/isaacs/minimatch/commit/77a0f5c4b80bdc641c3c930a1d9edf5ad2db57f8",
+              "title": "GitHub Commit"
+            },
+            {
+              "url": "https://github.com/isaacs/minimatch/releases/tag/v11.0.1",
+              "title": "GitHub Release"
+            }
+          ],
+          "cvssDetails": [
+            {
+              "assigner": "Red Hat",
+              "severity": "high",
+              "cvssV3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+              "cvssV3BaseScore": 7.5,
+              "modificationTime": "2026-10-30T16:00:55.863611Z"
+            }
+          ],
+          "cvssSources": [
+            {
+              "type": "primary",
+              "vector": "CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:N/VI:N/VA:L/SC:N/SI:N/SA:N",
+              "assigner": "Snyk",
+              "severity": "medium",
+              "baseScore": 6.9,
+              "cvssVersion": "4.0",
+              "modificationTime": "2026-11-01T07:18:22.906355Z"
+            },
+            {
+              "type": "secondary",
+              "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L",
+              "assigner": "Snyk",
+              "severity": "medium",
+              "baseScore": 5.3,
+              "cvssVersion": "3.1",
+              "modificationTime": "2026-11-01T07:18:22.906355Z"
+            },
+            {
+              "type": "secondary",
+              "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+              "assigner": "Red Hat",
+              "severity": "high",
+              "baseScore": 7.5,
+              "cvssVersion": "3.1",
+              "modificationTime": "2026-10-30T16:00:55.863611Z"
+            }
+          ],
+          "description": "## Overview\n[minimatch](https://www.npmjs.com/package/minimatch) is a minimal matching utility.\n\nAffected versions of this package are vulnerable to Asymmetric Resource Consumption (Amplification) in the `firstPhasePreProcess` method, where the `**/..` transform clones a `globParts` entry and pushes the clone back onto the same array inside a `do...while (didSomething)` fixpoint loop. An attacker can exhaust CPU and memory by supplying a glob pattern whose `**/..` sequences regenerate entries during preprocessing, which `secondPhasePreProcess` then compares in an O(n^2) pairwise `partsMatch` pass over the expanded set. Exploitation requires the pattern to be parsed with `optimizationLevel` set to 2 or higher.\n## Remediation\nUpgrade `minimatch` to version 11.0.1 or higher.\n## References\n- [GitHub Advisory](https://github.com/isaacs/minimatch/security/advisories/GHSA-g3hv-75wg-m249)\n- [GitHub Commit](https://github.com/isaacs/minimatch/commit/77a0f5c4b80bdc641c3c930a1d9edf5ad2db57f8)\n- [GitHub Release](https://github.com/isaacs/minimatch/releases/tag/v11.0.1)\n",
+          "epssDetails": {
+            "percentile": "0.21741",
+            "probability": "0.00291",
+            "modelVersion": "v2026.06.15"
+          },
+          "identifiers": {
+            "CVE": [
+              "CVE-2026-118764"
+            ],
+            "CWE": [
+              "CWE-405"
+            ],
+            "GHSA": [
+              "GHSA-g3hv-75wg-m249"
+            ]
+          },
+          "packageName": "minimatch",
+          "proprietary": false,
+          "creationTime": "2026-11-01T07:18:22.545837Z",
+          "functions_new": [],
+          "alternativeIds": [],
+          "disclosureTime": "2026-10-27T22:00:00Z",
+          "exploitDetails": {
+            "sources": [],
+            "maturityLevels": [
+              {
+                "type": "secondary",
+                "level": "Not Defined",
+                "format": "CVSSv3"
+              },
+              {
+                "type": "primary",
+                "level": "Not Defined",
+                "format": "CVSSv4"
+              }
+            ]
+          },
+          "packageManager": "npm",
+          "publicationTime": "2026-11-01T07:18:22.724939Z",
+          "severityBasedOn": "CVSS",
+          "modificationTime": "2026-11-01T07:18:22.906355Z",
+          "socialTrendAlert": false,
+          "packagePopularityRank": 99,
+          "from": [
+            "backend@*",
+            "webdav@5.11.0",
+            "minimatch@10.2.4"
+          ],
+          "upgradePath": [],
+          "isUpgradable": false,
+          "isPatchable": false,
+          "isPinnable": false,
+          "isRuntime": false,
+          "name": "minimatch",
+          "version": "10.2.4",
+          "severityWithCritical": "medium"
+        }
+      ],
+      "upgrade": {
+        "@hono/node-server@2.0.12": {
+          "upgradeTo": "@hono/node-server@2.1.3",
+          "upgrades": [
+            "@hono/node-server@2.0.12"
+          ],
+          "vulns": [
+            "SNYK-JS-HONONODESERVER-21802762"
+          ]
+        }
+      },
+      "patch": {},
+      "ignore": {},
+      "pin": {}
+    },
+    "filesystemPolicy": false,
+    "filtered": {
+      "ignore": [],
+      "patch": []
+    },
+    "uniqueCount": 2,
+    "projectName": "backend",
+    "foundProjectCount": 2,
+    "displayTargetFile": "backend/package-lock.json",
+    "hasUnknownVersions": false,
+    "path": "/home/runner/work/nodeauth-byos/nodeauth-byos"
+  },
+  {
+    "vulnerabilities": [
+      {
+        "id": "SNYK-JS-FOLLOWREDIRECTS-21762031",
+        "title": "Insertion of Sensitive Information Into Sent Data",
+        "CVSSv3": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:N/A:N/E:P",
+        "credit": [
+          "Rob Jones"
+        ],
+        "semver": {
+          "vulnerable": [
+            ">=1.16.0 <1.16.2"
+          ]
+        },
+        "exploit": "Proof of Concept",
+        "fixedIn": [
+          "1.16.2"
+        ],
+        "patches": [],
+        "insights": {
+          "triageAdvice": null
+        },
+        "language": "js",
+        "severity": "high",
+        "cvssScore": 8.2,
+        "functions": [],
+        "malicious": false,
+        "isDisputed": false,
+        "moduleName": "follow-redirects",
+        "references": [
+          {
+            "url": "https://github.com/follow-redirects/follow-redirects/security/advisories/GHSA-mrwp-f3q8-3g9p",
+            "title": "GitHub Advisory"
+          },
+          {
+            "url": "https://github.com/follow-redirects/follow-redirects/commit/b0a7751e9cd64cd8eeb6ec67d2f206a9cc88d3f8",
+            "title": "GitHub Commit"
+          },
+          {
+            "url": "https://github.com/follow-redirects/follow-redirects/releases/tag/v1.16.2",
+            "title": "GitHub Release"
+          }
+        ],
+        "cvssDetails": [
+          {
+            "assigner": "Red Hat",
+            "severity": "medium",
+            "cvssV3Vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:N/A:N",
+            "cvssV3BaseScore": 5.9,
+            "modificationTime": "2026-10-29T06:45:43.875999Z"
+          }
+        ],
+        "cvssSources": [
+          {
+            "type": "primary",
+            "vector": "CVSS:4.0/AV:N/AC:H/AT:P/PR:N/UI:N/VC:H/VI:N/VA:N/SC:N/SI:N/SA:N/E:P",
+            "assigner": "Snyk",
+            "severity": "high",
+            "baseScore": 8.2,
+            "cvssVersion": "4.0",
+            "modificationTime": "2026-10-29T06:45:45.024466Z"
+          },
+          {
+            "type": "secondary",
+            "vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:N/A:N/E:P",
+            "assigner": "Snyk",
+            "severity": "medium",
+            "baseScore": 5.9,
+            "cvssVersion": "3.1",
+            "modificationTime": "2026-10-29T06:45:45.024466Z"
+          },
+          {
+            "type": "secondary",
+            "vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:N/A:N",
+            "assigner": "Red Hat",
+            "severity": "medium",
+            "baseScore": 5.9,
+            "cvssVersion": "3.1",
+            "modificationTime": "2026-10-29T06:45:43.875999Z"
+          }
+        ],
+        "description": "## Overview\n\nAffected versions of this package are vulnerable to Insertion of Sensitive Information Into Sent Data via the `_sanitizeOptions` function in `index.js`, which uses `instanceof Array` to validate the `sensitiveHeaders` option. An attacker who controls the `sensitiveHeaders` value can supply a cross-realm array (created in a separate VM context) that passes `Array.isArray` but fails the `instanceof Array` check, causing the guard to reset `sensitiveHeaders` to an empty array and allowing sensitive headers to be forwarded to a redirect target that should not receive them.\n## PoC\nStart two loopback HTTP servers. The first returns a 302 redirect to the second. Send X-API-Key and list that name in sensitiveHeaders, then compare a normal array with a genuine cross-realm array created by:\n\n```js\nconst vm = require('node:vm');\nconst sensitiveHeaders = vm.runInNewContext(`['X-API-Key']`);\n```\n\nObserved against both source and the exact npm 1.16.1 package:\n\n- Same-realm ['X-API-Key']: the redirect target did not receive the key.\n- Cross-realm ['X-API-Key']: Array.isArray(value) was true, value instanceof Array was false, and the redirect target received X-API-Key.\n- An unrelated X-Harmless header remained present in both cases.\n\nThe complete 3.5 KB loopback-only harness and raw JSON output are available privately.\n\n**Note:** The PoC uses two loopback HTTP servers and a cross-realm array created via Node.js `node:vm`, tested against npm package version 1.16.1.\n## Remediation\nUpgrade `follow-redirects` to version 1.16.2 or higher.\n## References\n- [GitHub Advisory](https://github.com/follow-redirects/follow-redirects/security/advisories/GHSA-mrwp-f3q8-3g9p)\n- [GitHub Commit](https://github.com/follow-redirects/follow-redirects/commit/b0a7751e9cd64cd8eeb6ec67d2f206a9cc88d3f8)\n- [GitHub Release](https://github.com/follow-redirects/follow-redirects/releases/tag/v1.16.2)\n",
+        "epssDetails": {
+          "percentile": "0.18733",
+          "probability": "0.00266",
+          "modelVersion": "v2026.06.15"
+        },
+        "identifiers": {
+          "CVE": [
+            "CVE-2026-116689"
+          ],
+          "CWE": [
+            "CWE-201"
+          ],
+          "GHSA": [
+            "GHSA-mrwp-f3q8-3g9p"
+          ]
+        },
+        "packageName": "follow-redirects",
+        "proprietary": false,
+        "creationTime": "2026-10-28T11:34:14.080947Z",
+        "functions_new": [],
+        "alternativeIds": [],
+        "disclosureTime": "2026-10-27T22:38:44.356000Z",
+        "exploitDetails": {
+          "sources": [
+            "Snyk"
+          ],
+          "maturityLevels": [
+            {
+              "type": "secondary",
+              "level": "Proof of Concept",
+              "format": "CVSSv3"
+            },
+            {
+              "type": "primary",
+              "level": "Proof of Concept",
+              "format": "CVSSv4"
+            }
+          ]
+        },
+        "packageManager": "npm",
+        "publicationTime": "2026-10-28T11:34:14.249769Z",
+        "severityBasedOn": "CVSS",
+        "modificationTime": "2026-10-29T06:45:45.024466Z",
+        "socialTrendAlert": false,
+        "severityWithCritical": "high",
+        "from": [
+          "frontend@0.0.0",
+          "@walletconnect/ethereum-provider@2.23.9",
+          "@reown/appkit@1.8.17-wc-circular-dependencies-fix.0",
+          "@reown/appkit-pay@1.8.17-wc-circular-dependencies-fix.0",
+          "@reown/appkit-utils@1.8.17-wc-circular-dependencies-fix.0",
+          "@base-org/account@2.4.0",
+          "@coinbase/cdp-sdk@1.58.0",
+          "axios@1.20.0",
+          "follow-redirects@1.16.1"
+        ],
+        "upgradePath": [
+          false,
+          "@walletconnect/ethereum-provider@2.23.10",
+          "@reown/appkit@1.8.19",
+          "@reown/appkit-pay@1.8.19",
+          "@reown/appkit-utils@1.8.19"
+        ],
+        "isUpgradable": true,
+        "isPatchable": false,
+        "name": "follow-redirects",
+        "version": "1.16.1"
+      },
+      {
+        "id": "SNYK-JS-INTLIFYCOREBASE-22132201",
+        "title": "Improper Encoding or Escaping of Output",
+        "CVSSv3": "CVSS:3.1/AV:N/AC:H/PR:N/UI:R/S:C/C:N/I:L/A:N/E:P",
+        "credit": [
+          "Unknown"
+        ],
+        "semver": {
+          "vulnerable": [
+            ">=12.0.0-alpha.1 <12.0.0-alpha.5",
+            ">=9.0.0-beta.12 <11.4.14"
+          ]
+        },
+        "exploit": "Proof of Concept",
+        "fixedIn": [
+          "12.0.0-alpha.5",
+          "11.4.14"
+        ],
+        "patches": [],
+        "insights": {
+          "triageAdvice": null
+        },
+        "language": "js",
+        "severity": "low",
+        "cvssScore": 2.1,
+        "functions": [],
+        "malicious": false,
+        "isDisputed": false,
+        "moduleName": "@intlify/core-base",
+        "references": [
+          {
+            "url": "https://github.com/intlify/vue-i18n/security/advisories/GHSA-8rc2-428q-7ww3",
+            "title": "GitHub Advisory"
+          },
+          {
+            "url": "https://github.com/intlify/vue-i18n/commit/d657ce8f4b3b6b198a8f6e3d09e2b57a5d019fb8",
+            "title": "GitHub Commit"
+          },
+          {
+            "url": "https://github.com/intlify/vue-i18n/pull/2680",
+            "title": "GitHub PR"
+          },
+          {
+            "url": "https://github.com/intlify/vue-i18n/releases/tag/v11.4.14",
+            "title": "GitHub Release"
+          },
+          {
+            "url": "https://github.com/intlify/vue-i18n/releases/tag/v12.0.0-alpha.5",
+            "title": "GitHub Release"
+          }
+        ],
+        "cvssDetails": [],
+        "cvssSources": [
+          {
+            "type": "primary",
+            "vector": "CVSS:4.0/AV:N/AC:L/AT:P/PR:N/UI:A/VC:N/VI:N/VA:N/SC:N/SI:L/SA:N/E:P",
+            "assigner": "Snyk",
+            "severity": "low",
+            "baseScore": 2.1,
+            "cvssVersion": "4.0",
+            "modificationTime": "2026-11-02T10:16:56.932653Z"
+          },
+          {
+            "type": "secondary",
+            "vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:R/S:C/C:N/I:L/A:N/E:P",
+            "assigner": "Snyk",
+            "severity": "low",
+            "baseScore": 3.4,
+            "cvssVersion": "3.1",
+            "modificationTime": "2026-11-02T10:16:56.932653Z"
+          }
+        ],
+        "description": "## Overview\n[@intlify/core-base](https://www.npmjs.org/package/@intlify/core-base) is a @intlify/core-base\n\nAffected versions of this package are vulnerable to Improper Encoding or Escaping of Output via the `escapeParams` function in `packages/core-base/src/translate.ts`, when a translation call passes both list and named interpolation values simultaneously. The original logic used `else if` to escape named values, meaning that when a list argument is also present, named values are never passed through `escapeHtml`. An attacker who controls a named interpolation value can inject unescaped HTML into the rendered output, enabling a cross-site scripting attack.\n\n**Note:** This is only exploitable when the `escapeParameter` option is explicitly set to `true`.\n## PoC\n```js\nimport { createI18n } from 'vue-i18n'\n\nconst i18n = createI18n({\n  legacy: false,\n  locale: 'en',\n  escapeParameter: true,\n  messages: {\n    en: { withList: '{0} {name}', withoutList: '{name}' }\n  }\n})\nconst t = i18n.global.t\n\nt('withoutList', { name: '<b>x</b>' })\n// &lt;b&gt;x&lt;&#x2F;b&gt;      escaped\n\nt('withList', ['a'], { named: { name: '<b>x</b>' } })\n// a <b>x</b>                   not escaped (v11.4.13)\n```\n\n**Note:** The PoC uses vue-i18n with `escapeParameter: true` and demonstrates that named values are not escaped when a list argument is also passed.\n## Remediation\nUpgrade `@intlify/core-base` to version 12.0.0-alpha.5, 11.4.14 or higher.\n## References\n- [GitHub Advisory](https://github.com/intlify/vue-i18n/security/advisories/GHSA-8rc2-428q-7ww3)\n- [GitHub Commit](https://github.com/intlify/vue-i18n/commit/d657ce8f4b3b6b198a8f6e3d09e2b57a5d019fb8)\n- [GitHub PR](https://github.com/intlify/vue-i18n/pull/2680)\n- [GitHub Release](https://github.com/intlify/vue-i18n/releases/tag/v11.4.14)\n- [GitHub Release](https://github.com/intlify/vue-i18n/releases/tag/v12.0.0-alpha.5)\n",
+        "epssDetails": {
+          "percentile": "0.41372",
+          "probability": "0.00480",
+          "modelVersion": "v2026.06.15"
+        },
+        "identifiers": {
+          "CVE": [
+            "CVE-2026-118256"
+          ],
+          "CWE": [
+            "CWE-116",
+            "CWE-79"
+          ],
+          "GHSA": [
+            "GHSA-8rc2-428q-7ww3"
+          ]
+        },
+        "packageName": "@intlify/core-base",
+        "proprietary": false,
+        "creationTime": "2026-11-02T10:16:55.790462Z",
+        "functions_new": [],
+        "alternativeIds": [],
+        "disclosureTime": "2026-10-28T21:06:34Z",
+        "exploitDetails": {
+          "sources": [
+            "Snyk"
+          ],
+          "maturityLevels": [
+            {
+              "type": "secondary",
+              "level": "Proof of Concept",
+              "format": "CVSSv3"
+            },
+            {
+              "type": "primary",
+              "level": "Proof of Concept",
+              "format": "CVSSv4"
+            }
+          ]
+        },
+        "packageManager": "npm",
+        "publicationTime": "2026-11-02T10:16:55.977899Z",
+        "severityBasedOn": "CVSS",
+        "modificationTime": "2026-11-02T10:16:56.932653Z",
+        "socialTrendAlert": false,
+        "severityWithCritical": "low",
+        "from": [
+          "frontend@0.0.0",
+          "vue-i18n@9.14.5",
+          "@intlify/core-base@9.14.5"
+        ],
+        "upgradePath": [
+          false,
+          "vue-i18n@11.4.14",
+          "@intlify/core-base@11.4.14"
+        ],
+        "isUpgradable": true,
+        "isPatchable": false,
+        "name": "@intlify/core-base",
+        "version": "9.14.5"
+      },
+      {
+        "id": "SNYK-JS-VUEI18N-22132203",
+        "title": "Improper Encoding or Escaping of Output",
+        "CVSSv3": "CVSS:3.1/AV:N/AC:H/PR:N/UI:R/S:C/C:N/I:L/A:N/E:P",
+        "credit": [
+          "Unknown"
+        ],
+        "semver": {
+          "vulnerable": [
+            ">=12.0.0-alpha.1 <12.0.0-alpha.5",
+            ">=9.0.0-beta.5 <11.4.14"
+          ]
+        },
+        "exploit": "Proof of Concept",
+        "fixedIn": [
+          "12.0.0-alpha.5",
+          "11.4.14"
+        ],
+        "patches": [],
+        "insights": {
+          "triageAdvice": null
+        },
+        "language": "js",
+        "severity": "low",
+        "cvssScore": 2.1,
+        "functions": [],
+        "malicious": false,
+        "isDisputed": false,
+        "moduleName": "vue-i18n",
+        "references": [
+          {
+            "url": "https://github.com/intlify/vue-i18n/security/advisories/GHSA-8rc2-428q-7ww3",
+            "title": "GitHub Advisory"
+          },
+          {
+            "url": "https://github.com/intlify/vue-i18n/commit/d657ce8f4b3b6b198a8f6e3d09e2b57a5d019fb8",
+            "title": "GitHub Commit"
+          },
+          {
+            "url": "https://github.com/intlify/vue-i18n/pull/2680",
+            "title": "GitHub PR"
+          },
+          {
+            "url": "https://github.com/intlify/vue-i18n/releases/tag/v11.4.14",
+            "title": "GitHub Release"
+          },
+          {
+            "url": "https://github.com/intlify/vue-i18n/releases/tag/v12.0.0-alpha.5",
+            "title": "GitHub Release"
+          }
+        ],
+        "cvssDetails": [],
+        "cvssSources": [
+          {
+            "type": "primary",
+            "vector": "CVSS:4.0/AV:N/AC:L/AT:P/PR:N/UI:A/VC:N/VI:N/VA:N/SC:N/SI:L/SA:N/E:P",
+            "assigner": "Snyk",
+            "severity": "low",
+            "baseScore": 2.1,
+            "cvssVersion": "4.0",
+            "modificationTime": "2026-11-02T10:16:56.934631Z"
+          },
+          {
+            "type": "secondary",
+            "vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:R/S:C/C:N/I:L/A:N/E:P",
+            "assigner": "Snyk",
+            "severity": "low",
+            "baseScore": 3.4,
+            "cvssVersion": "3.1",
+            "modificationTime": "2026-11-02T10:16:56.934631Z"
+          }
+        ],
+        "description": "## Overview\n[vue-i18n](https://www.npmjs.org/package/vue-i18n) is an Internationalization plugin for Vue.js\n\nAffected versions of this package are vulnerable to Improper Encoding or Escaping of Output via the `escapeParams` function in `packages/core-base/src/translate.ts`, when a translation call passes both list and named interpolation values simultaneously. The original logic used `else if` to escape named values, meaning that when a list argument is also present, named values are never passed through `escapeHtml`. An attacker who controls a named interpolation value can inject unescaped HTML into the rendered output, enabling a cross-site scripting attack.\n\n**Note:** This is only exploitable when the `escapeParameter` option is explicitly set to `true`.\n## PoC\n```js\nimport { createI18n } from 'vue-i18n'\n\nconst i18n = createI18n({\n  legacy: false,\n  locale: 'en',\n  escapeParameter: true,\n  messages: {\n    en: { withList: '{0} {name}', withoutList: '{name}' }\n  }\n})\nconst t = i18n.global.t\n\nt('withoutList', { name: '<b>x</b>' })\n// &lt;b&gt;x&lt;&#x2F;b&gt;      escaped\n\nt('withList', ['a'], { named: { name: '<b>x</b>' } })\n// a <b>x</b>                   not escaped (v11.4.13)\n```\n\n**Note:** The PoC uses vue-i18n with `escapeParameter: true` and demonstrates that named values are not escaped when a list argument is also passed.\n## Remediation\nUpgrade `vue-i18n` to version 12.0.0-alpha.5, 11.4.14 or higher.\n## References\n- [GitHub Advisory](https://github.com/intlify/vue-i18n/security/advisories/GHSA-8rc2-428q-7ww3)\n- [GitHub Commit](https://github.com/intlify/vue-i18n/commit/d657ce8f4b3b6b198a8f6e3d09e2b57a5d019fb8)\n- [GitHub PR](https://github.com/intlify/vue-i18n/pull/2680)\n- [GitHub Release](https://github.com/intlify/vue-i18n/releases/tag/v11.4.14)\n- [GitHub Release](https://github.com/intlify/vue-i18n/releases/tag/v12.0.0-alpha.5)\n",
+        "epssDetails": {
+          "percentile": "0.41372",
+          "probability": "0.00480",
+          "modelVersion": "v2026.06.15"
+        },
+        "identifiers": {
+          "CVE": [
+            "CVE-2026-118256"
+          ],
+          "CWE": [
+            "CWE-116",
+            "CWE-79"
+          ],
+          "GHSA": [
+            "GHSA-8rc2-428q-7ww3"
+          ]
+        },
+        "packageName": "vue-i18n",
+        "proprietary": false,
+        "creationTime": "2026-11-02T10:16:56.188573Z",
+        "functions_new": [],
+        "alternativeIds": [],
+        "disclosureTime": "2026-10-28T21:06:34Z",
+        "exploitDetails": {
+          "sources": [
+            "Snyk"
+          ],
+          "maturityLevels": [
+            {
+              "type": "secondary",
+              "level": "Proof of Concept",
+              "format": "CVSSv3"
+            },
+            {
+              "type": "primary",
+              "level": "Proof of Concept",
+              "format": "CVSSv4"
+            }
+          ]
+        },
+        "packageManager": "npm",
+        "publicationTime": "2026-11-02T10:16:56.335423Z",
+        "severityBasedOn": "CVSS",
+        "modificationTime": "2026-11-02T10:16:56.934631Z",
+        "socialTrendAlert": false,
+        "severityWithCritical": "low",
+        "from": [
+          "frontend@0.0.0",
+          "vue-i18n@9.14.5"
+        ],
+        "upgradePath": [
+          false,
+          "vue-i18n@11.4.14"
+        ],
+        "isUpgradable": true,
+        "isPatchable": false,
+        "name": "vue-i18n",
+        "version": "9.14.5"
+      }
+    ],
+    "ok": false,
+    "dependencyCount": 346,
+    "org": "nap0o",
+    "policy": "# Snyk (https://snyk.io) policy file, patches or ignores known vulnerabilities.\nversion: v1.25.1\nignore: {}\npatch: {}\n",
+    "isPrivate": true,
+    "licensesPolicy": {
+      "severities": {},
+      "orgLicenseRules": {
+        "AGPL-1.0": {
+          "licenseType": "AGPL-1.0",
+          "severity": "high",
+          "instructions": ""
+        },
+        "AGPL-3.0": {
+          "licenseType": "AGPL-3.0",
+          "severity": "high",
+          "instructions": ""
+        },
+        "Artistic-1.0": {
+          "licenseType": "Artistic-1.0",
+          "severity": "medium",
+          "instructions": ""
+        },
+        "Artistic-2.0": {
+          "licenseType": "Artistic-2.0",
+          "severity": "medium",
+          "instructions": ""
+        },
+        "CDDL-1.0": {
+          "licenseType": "CDDL-1.0",
+          "severity": "medium",
+          "instructions": ""
+        },
+        "CPOL-1.02": {
+          "licenseType": "CPOL-1.02",
+          "severity": "high",
+          "instructions": ""
+        },
+        "EPL-1.0": {
+          "licenseType": "EPL-1.0",
+          "severity": "medium",
+          "instructions": ""
+        },
+        "GPL-2.0": {
+          "licenseType": "GPL-2.0",
+          "severity": "high",
+          "instructions": ""
+        },
+        "GPL-3.0": {
+          "licenseType": "GPL-3.0",
+          "severity": "high",
+          "instructions": ""
+        },
+        "LGPL-2.0": {
+          "licenseType": "LGPL-2.0",
+          "severity": "medium",
+          "instructions": ""
+        },
+        "LGPL-2.1": {
+          "licenseType": "LGPL-2.1",
+          "severity": "medium",
+          "instructions": ""
+        },
+        "LGPL-3.0": {
+          "licenseType": "LGPL-3.0",
+          "severity": "medium",
+          "instructions": ""
+        },
+        "MPL-1.1": {
+          "licenseType": "MPL-1.1",
+          "severity": "medium",
+          "instructions": ""
+        },
+        "MPL-2.0": {
+          "licenseType": "MPL-2.0",
+          "severity": "medium",
+          "instructions": ""
+        },
+        "MS-RL": {
+          "licenseType": "MS-RL",
+          "severity": "medium",
+          "instructions": ""
+        },
+        "SimPL-2.0": {
+          "licenseType": "SimPL-2.0",
+          "severity": "high",
+          "instructions": ""
+        }
+      }
+    },
+    "packageManager": "npm",
+    "ignoreSettings": {
+      "adminOnly": false,
+      "reasonRequired": false,
+      "disregardFilesystemIgnores": false,
+      "autoApproveIgnores": false,
+      "approvalWorkflowEnabled": false
+    },
+    "summary": "3 vulnerable dependency paths",
+    "remediation": {
+      "unresolved": [],
+      "upgrade": {
+        "@walletconnect/ethereum-provider@2.23.9": {
+          "upgradeTo": "@walletconnect/ethereum-provider@2.23.10",
+          "upgrades": [
+            "follow-redirects@1.16.1"
+          ],
+          "vulns": [
+            "SNYK-JS-FOLLOWREDIRECTS-21762031"
+          ]
+        },
+        "vue-i18n@9.14.5": {
+          "upgradeTo": "vue-i18n@11.4.14",
+          "upgrades": [
+            "@intlify/core-base@9.14.5",
+            "vue-i18n@9.14.5"
+          ],
+          "vulns": [
+            "SNYK-JS-INTLIFYCOREBASE-22132201",
+            "SNYK-JS-VUEI18N-22132203"
+          ]
+        }
+      },
+      "patch": {},
+      "ignore": {},
+      "pin": {}
+    },
+    "filesystemPolicy": false,
+    "filtered": {
+      "ignore": [],
+      "patch": []
+    },
+    "uniqueCount": 3,
+    "projectName": "frontend",
+    "foundProjectCount": 2,
+    "displayTargetFile": "frontend/package-lock.json",
+    "hasUnknownVersions": false,
+    "path": "/home/runner/work/nodeauth-byos/nodeauth-byos"
+  }
+]

@@ -1,0 +1,76 @@
+
+Testing /home/runner/work/nodeauth-byos/nodeauth-byos...
+
+Organization:      nap0o
+Package manager:   npm
+Target file:       package-lock.json
+Project name:      nodeauth
+Open source:       no
+Project path:      /home/runner/work/nodeauth-byos/nodeauth-byos
+Licenses:          enabled
+
+✔ Tested 64 dependencies for known issues, no vulnerable paths found.
+
+-------------------------------------------------------
+
+Testing /home/runner/work/nodeauth-byos/nodeauth-byos...
+
+Tested 163 dependencies for known issues, found 2 issues, 2 vulnerable paths.
+
+
+Issues to fix by upgrading:
+
+  Upgrade @hono/node-server@2.0.12 to @hono/node-server@2.1.3 to fix
+  ✗ Double Decoding of the Same Data (new) [Medium Severity][https://security.snyk.io/vuln/SNYK-JS-HONONODESERVER-21802762] in @hono/node-server@2.0.12
+    introduced by @hono/node-server@2.0.12
+
+
+Issues with no direct upgrade or patch:
+  ✗ Asymmetric Resource Consumption (Amplification) [Medium Severity][https://security.snyk.io/vuln/SNYK-JS-MINIMATCH-22111072] in minimatch@10.2.4
+    introduced by webdav@5.11.0 > minimatch@10.2.4
+  This issue was fixed in versions: 11.0.1
+
+
+
+Organization:      nap0o
+Package manager:   npm
+Target file:       backend/package-lock.json
+Project name:      backend
+Open source:       no
+Project path:      /home/runner/work/nodeauth-byos/nodeauth-byos
+Licenses:          enabled
+
+-------------------------------------------------------
+
+Testing /home/runner/work/nodeauth-byos/nodeauth-byos...
+
+Tested 346 dependencies for known issues, found 3 issues, 3 vulnerable paths.
+
+
+Issues to fix by upgrading:
+
+  Upgrade @walletconnect/ethereum-provider@2.23.9 to @walletconnect/ethereum-provider@2.23.10 to fix
+  ✗ Insertion of Sensitive Information Into Sent Data (new) [High Severity][https://security.snyk.io/vuln/SNYK-JS-FOLLOWREDIRECTS-21762031] in follow-redirects@1.16.1
+    introduced by @walletconnect/ethereum-provider@2.23.9 > @reown/appkit@1.8.17-wc-circular-dependencies-fix.0 > @reown/appkit-pay@1.8.17-wc-circular-dependencies-fix.0 > @reown/appkit-utils@1.8.17-wc-circular-dependencies-fix.0 > @base-org/account@2.4.0 > @coinbase/cdp-sdk@1.58.0 > axios@1.20.0 > follow-redirects@1.16.1
+
+  Upgrade vue-i18n@9.14.5 to vue-i18n@11.4.14 to fix
+  ✗ Improper Encoding or Escaping of Output (new) [Low Severity][https://security.snyk.io/vuln/SNYK-JS-INTLIFYCOREBASE-22132201] in @intlify/core-base@9.14.5
+    introduced by vue-i18n@9.14.5 > @intlify/core-base@9.14.5
+  ✗ Improper Encoding or Escaping of Output (new) [Low Severity][https://security.snyk.io/vuln/SNYK-JS-VUEI18N-22132203] in vue-i18n@9.14.5
+    introduced by vue-i18n@9.14.5
+
+
+
+Organization:      nap0o
+Package manager:   npm
+Target file:       frontend/package-lock.json
+Project name:      frontend
+Open source:       no
+Project path:      /home/runner/work/nodeauth-byos/nodeauth-byos
+Licenses:          enabled
+
+
+Tested 3 projects, 2 contained vulnerable paths.
+
+
+
